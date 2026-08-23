@@ -2,3 +2,18 @@
 Thumbs.db
 node_modules/
 *.log
+
+# Per-machine Claude Code permissions. .claude/settings.json IS committed —
+# it's the shared project config; this one is personal to a machine.
+.claude/settings.local.json
+
+# Processed drop-folder originals. The canonical copy of an article lives in
+# _posts/ once it is set up; this is only a local receipt of what came in.
+_inbox/done/
+
+# Jekyll build output and local gem install — regenerated, never committed.
+_site/
+.jekyll-cache/
+.jekyll-metadata
+vendor/
+.bundle/

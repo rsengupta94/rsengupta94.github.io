@@ -1,0 +1,32 @@
+---
+layout: default
+title: Notes from my learnings
+description: I write to better understand what I am learning — because if you can't explain it, you don't understand it.
+permalink: /articles/
+---
+<main id="main" class="wrap">
+  <section class="page-head">
+    <span class="kicker">Writing</span>
+    <h1>Notes from my learnings.</h1>
+    <p class="lede">I write to better understand what I am learning. Also, because one of the greatest physicists says something on the lines of "<em>If you can't explain it, you don't understand it.</em>"</p>
+    <p class="lede">PS - AI use has been restricted to spell, grammar checks and formatting only</p>
+  </section>
+
+  <div class="art-list">
+    {%- for post in site.posts %}
+    <a class="art-item" href="{{ post.url | relative_url }}">
+      <span class="art-date">{{ post.date | date: "%b %Y" }}</span>
+      <span class="art-main">
+        <span class="art-title">{{ post.title }}</span>
+        <span class="art-summary">{{ post.description | strip_newlines }}</span>
+      </span>
+      <span class="art-side">
+        {%- if post.tag %}<span class="tag tag-accent">{{ post.tag }}</span>{% endif %}
+        {%- assign read_minutes = post.content | number_of_words | divided_by: 200 | at_least: 1 -%}
+        <span class="read-time">{{ read_minutes }} min</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+      </span>
+    </a>
+    {%- endfor %}
+  </div>
+</main>

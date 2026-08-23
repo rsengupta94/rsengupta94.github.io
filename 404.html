@@ -1,15 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Not found</title>
-<script>
-  /* GitHub Pages serves this for any unknown path. Routing lives in the hash,
-     so send visitors to the site root and keep whatever hash they arrived with. */
-  location.replace('/' + location.hash);
-</script>
-</head>
-<body>
-<p>Redirecting to <a href="/">the home page</a>.</p>
-</body>
-</html>
+---
+layout: default
+title: Page not found
+permalink: /404.html
+sitemap: false
+---
+<main id="main" class="wrap">
+  <section class="page-head">
+    <span class="kicker">404</span>
+    <h1>That page doesn't exist.</h1>
+    <p class="lede">The link may be out of date. Try the
+      <a href="{{ '/articles/' | relative_url }}">articles</a>, the
+      <a href="{{ '/work/' | relative_url }}">work projects</a>, or head
+      <a href="{{ '/' | relative_url }}">back to the start</a>.</p>
+  </section>
+</main>

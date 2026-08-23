@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {%- comment -%}
+    jekyll-seo-tag emits <title>, description, canonical, Open Graph,
+    Twitter cards and JSON-LD from _config.yml plus this page's front matter.
+    That is what makes each article indexable on its own terms.
+  {%- endcomment -%}
+  {%- comment -%}
+    title=false suppresses jekyll-seo-tag's own <title>, which would append
+    " | Rajarshi Sengupta" — 21 characters of a ~60-character display budget.
+    Google truncates around 60 and rewrites titles over 70 almost always, so the
+    suffix costs a fifth of the budget to repeat something Google already shows:
+    it renders the site name as its own SERP element and documents that it "may
+    omit the site name from the title link if it's repetitive".
+
+    So interior pages carry just their own title, and only the home page spends
+    the space on the brand — which is exactly what Google's title-link guidance
+    recommends.
+
+    og:title and the rest still come from {% seo %}; only <title> is ours.
+  {%- endcomment -%}
+  {%- comment -%}
+    Two title shapes, split by what the page competes for:
+
+    • Content pages (articles, case studies) rank for topic queries, so they
+      spend the whole ~60-char budget on the topic and carry no brand.
+    • Navigational pages (home, section indexes) rank for brand queries and
+      would otherwise be vague 8-character titles like "Articles" — which are
+      rewritten more than half the time. They get the name appended.
+
+    The separator is a hyphen, not a pipe: pipes are stripped from displayed
+    titles 41% of the time versus 20% for hyphens.
+  {%- endcomment -%}
+  {% seo title=false %}
+  <title>
+    {%- if page.url == '/' -%}
+      {{ site.title }} — {{ site.tagline }}
+    {%- elsif page.layout == 'article' or page.layout == 'work' -%}
+      {{ page.title }}
+    {%- else -%}
+      {{ page.title }} - {{ site.title }}
+    {%- endif -%}
+  </title>
+
+  {%- comment -%}
+    jekyll-seo-tag emits no robots directive of its own, so pages that should stay
+    reachable but drop out of search need this. Set `noindex: true` in a page's
+    front matter (and `sitemap: false` alongside it). Note robots.txt must NOT
+    block the page, or Google never sees this tag.
+  {%- endcomment -%}
+  {%- if page.noindex %}
+  <meta name="robots" content="noindex">
+  {%- endif %}
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23dd2b0f'/><text x='50' y='72' font-family='sans-serif' font-size='64' font-weight='800' fill='%23f3f2f2' text-anchor='middle'>R</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap">
+
+  <link rel="stylesheet" href="{{ '/css/modernist.css' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/css/site.css' | relative_url }}">
+</head>
+<body>
+<script>
+  /* Set the theme before first paint so a dark-mode reload doesn't flash light. */
+  (function () {
+    try {
+      document.body.dataset.pfTheme =
+        localStorage.getItem('pf-theme') === 'dark' ? 'dark' : 'light';
+    } catch (e) {
+      document.body.dataset.pfTheme = 'light';
+    }
+  })();
+</script>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+{% include nav.html %}
+
+{{ content }}
+
+{% include contact.html %}
+{% include footer.html %}
+
+<script src="{{ '/js/app.js' | relative_url }}"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+- label: AI & LLM
+  items: [RAG, Evals, Agents, Prompt design, Model APIs]
+- label: Build & prototype
+  items: [Python, TypeScript, SQL, FastAPI, Streamlit]
+- label: Data & cloud
+  items: [Kafka, Postgres, dbt, AWS, Kubernetes]
+- label: Product & delivery
+  items: [Discovery, PRDs & RFCs, Solution architecture, Demos & POCs, Technical writing]

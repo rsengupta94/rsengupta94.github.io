@@ -1,0 +1,42 @@
+---
+layout: default
+title: Experiments
+description: Select experiments and side projects shipped as part of my personal learning — every one currently usable, full list on GitHub.
+permalink: /experiments/
+---
+<main id="main" class="wrap">
+  <section class="page-head">
+    <span class="kicker">Open source</span>
+    <h1>Experiments.</h1>
+    <p class="lede">Some of my select experiments and sideprojects that I have shipped as a part of my personal learning. Every one is currently usable — the full list lives on
+      <a href="{{ site.github_url }}" target="_blank" rel="noopener">GitHub</a>.</p>
+  </section>
+
+  {%- if page.coming_soon %}
+  {% include coming-soon.html %}
+  {%- else %}
+  <div class="exp-list">
+    {%- for e in site.data.experiments %}
+    <div class="exp-item">
+      {%- comment -%}
+        Numbered from position, so entries can be added, removed or reordered in
+        experiments.yml without renumbering anything by hand.
+      {%- endcomment -%}
+      <p class="exp-num">{% if forloop.index < 10 %}0{% endif %}{{ forloop.index }}</p>
+      <div class="exp-main">
+        <h2>{{ e.title }}</h2>
+        <p>{{ e.summary | strip_newlines }}</p>
+      </div>
+      <div class="tags">
+        {%- for t in e.tags %}<span class="tag tag-neutral">{{ t }}</span>{% endfor -%}
+      </div>
+      <div class="exp-side">
+        <div class="links">
+          {%- for l in e.links %}<a href="{{ l.href }}">{{ l.label }} ↗</a>{% endfor -%}
+        </div>
+      </div>
+    </div>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+</main>

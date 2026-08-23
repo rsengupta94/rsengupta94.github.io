@@ -1,0 +1,22 @@
+# Shape of an entry in _data/experience.yml — the /experience/ page.
+#
+# Entries render top to bottom in the order listed, so newest first.
+# `badge`, `small`, `points` and `tags` are all optional.
+
+- years: ""                   # e.g. "2024 — Now"
+  badge: ""                   # optional, e.g. "Current" — omit the key if unused
+  title: ""                   # job title
+  where: ""                   # e.g. "Employer · Location"
+  points:                     # what shipped; omit or leave [] for none
+    - ""
+  tags: []                    # e.g. [Python, AWS]
+
+# A qualification row uses the same shape with `small: true`, which renders the
+# heading one size down, and no points or tags:
+#
+# - years: "2013 — 2017"
+#   title: "B.Tech, Computer Science"
+#   small: true
+#   where: "University · Certification (year)"
+#   points: []
+#   tags: []

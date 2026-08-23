@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<title>Redirecting…</title>
+
+{%- comment -%}
+  Overrides the template shipped inside jekyll-redirect-from.
+
+  The gem's own version adds <meta name="robots" content="noindex"> alongside the
+  redirect. That combination is ambiguous: Google documents that an *instant*
+  meta refresh is interpreted as a permanent redirect, but publishes no
+  precedence rule for a page that says "redirect me" and "don't index me" at
+  once. The risk is that noindex wins, the old URL is dropped, and none of its
+  ranking signal reaches the new page — the opposite of why the redirect exists.
+
+  So this version keeps the three signals that all point the same way —
+  rel=canonical, an instant meta refresh, and a JS location assignment — and
+  omits noindex. Redirect stubs are still kept out of sitemap.xml, which the
+  plugin handles by defaulting them to `sitemap: false`.
+
+  GitHub Pages cannot send a real HTTP 301; this is the closest available.
+{%- endcomment -%}
+
+<link rel="canonical" href="{{ page.redirect.to }}">
+<meta http-equiv="refresh" content="0; url={{ page.redirect.to }}">
+{%- comment -%}
+  replace() rather than assignment so the dead URL does not land in the visitor's
+  back-button history. jsonify supplies the quotes and escaping.
+{%- endcomment -%}
+<script>location.replace({{ page.redirect.to | jsonify }})</script>
+
+<style>
+  body { font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 32rem;
+         padding: 0 1rem; line-height: 1.6; color: #201e1d; background: #f3f2f2; }
+  a { color: #dd2b0f; }
+</style>
+</head>
+<body>
+<h1>This page has moved</h1>
+<p>Redirecting to <a href="{{ page.redirect.to }}">{{ page.redirect.to }}</a>.</p>
+</body>
+</html>

@@ -1,0 +1,44 @@
+---
+layout: default
+---
+<main id="main" class="wrap">
+  <article class="detail detail-work">
+    <a class="back-link" href="{{ '/work/' | relative_url }}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+      All work projects</a>
+
+    <span class="kicker" style="margin-top:24px">{{ page.org }} · {{ page.period }}</span>
+    <h1>{{ page.title }}</h1>
+    <p class="role">Role: {{ page.role }}</p>
+
+    <hr class="rule">
+
+    <div class="prose-body">
+      {{ content }}
+    </div>
+
+    <h2 class="schema-heading">Tech schema</h2>
+    <div class="schema">
+      {%- for n in page.schema %}
+      <span class="schema-step">
+        {%- unless forloop.first %}
+        <span class="schema-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+        {%- endunless %}
+        <span class="schema-node">
+          <span class="label">{{ n.label }}</span>
+          <span class="sub">{{ n.sub }}</span>
+        </span>
+      </span>
+      {%- endfor %}
+    </div>
+    <p class="schema-caveat">Numbers rounded, internals generalized — happy to go deeper in conversation.</p>
+
+    <div class="detail-tags">
+      {%- for t in page.tags %}<span class="tag tag-neutral">{{ t }}</span>{% endfor -%}
+    </div>
+
+    <hr class="rule closing-rule">
+    <p class="footnote">Want the longer version?
+      <a href="mailto:{{ site.email }}">Email me</a> — architecture walkthroughs are my favorite conversation.</p>
+  </article>
+</main>

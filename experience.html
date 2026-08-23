@@ -1,0 +1,44 @@
+---
+layout: default
+title: Experience
+description: Roles, dates and what shipped — the short version of the resume.
+permalink: /experience/
+
+# Not live yet. `published: false` keeps this file exactly where it is but leaves
+# it out of the build entirely — no /experience/ URL, nothing in sitemap.xml.
+# To bring the section back: delete this line, and uncomment the Experience link
+# in _includes/nav.html. Real roles go in _data/experience.yml — shape and
+# guidance in _templates/experience.yml.
+published: false
+---
+<main id="main" class="wrap">
+  <section class="page-head">
+    <span class="kicker">Experience</span>
+    <h1>Eight years, three teams.</h1>
+    <p class="lede">The short version. The complete one is in the
+      <a href="{{ site.resume_url | relative_url }}" target="_blank" rel="noopener">resume</a>.</p>
+  </section>
+
+  {%- for x in site.data.experience %}
+  <div class="xp-row">
+    <div class="xp-when">
+      <p class="years">{{ x.years }}</p>
+      {%- if x.badge %}<p class="badge">{{ x.badge }}</p>{% endif %}
+    </div>
+    <div class="xp-main">
+      <h2{% if x.small %} class="small"{% endif %}>{{ x.title }}</h2>
+      <p class="where{% unless x.points.size > 0 %} last{% endunless %}">{{ x.where }}</p>
+      {%- if x.points.size > 0 %}
+      <ul>
+        {%- for p in x.points %}<li>{{ p }}</li>{% endfor -%}
+      </ul>
+      {%- endif %}
+      {%- if x.tags.size > 0 %}
+      <div class="tags">
+        {%- for t in x.tags %}<span class="tag tag-neutral">{{ t }}</span>{% endfor -%}
+      </div>
+      {%- endif %}
+    </div>
+  </div>
+  {%- endfor %}
+</main>

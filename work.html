@@ -1,0 +1,47 @@
+---
+layout: default
+title: Work case studies
+description: Case studies and learnings from products I have shipped across the organizations and teams I have worked with.
+permalink: /work/
+
+# No case studies published yet. Delete these three keys when the first one
+# lands and the page returns to normal on its own — nothing else to change.
+coming_soon: true
+noindex: true
+sitemap: false
+
+# Optional sentence shown under "Coming soon." Uncomment and write it, or leave
+# it out and the page shows the heading alone.
+# coming_soon_note: >-
+#   Your sentence here.
+---
+<main id="main" class="wrap">
+  <section class="page-head">
+    <span class="kicker">Shipped in production</span>
+    <h1>Work case studies.</h1>
+    <p class="lede">Case studies and learnings from some of the products that I have shipped in various organizations I have worked with.</p>
+  </section>
+
+  {%- if page.coming_soon %}
+  {% include coming-soon.html %}
+  {%- else %}
+  <div class="work-list">
+    {%- assign items = site.work | sort: "order" %}
+    {%- for w in items %}
+    <a class="work-item" href="{{ w.url | relative_url }}">
+      <span class="work-outcome">{{ w.outcome }}</span>
+      <span class="work-main">
+        <span class="work-title">{{ w.title }}</span>
+        <span class="work-org">{{ w.org }} · {{ w.period }}</span>
+        <span class="work-summary">{{ w.summary | strip_newlines }}</span>
+        <span class="work-chain">
+          {%- for n in w.schema %}{{ n.label }}{% unless forloop.last %} → {% endunless %}{% endfor -%}
+        </span>
+      </span>
+      <span class="work-cta">Case study
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span>
+    </a>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+</main>

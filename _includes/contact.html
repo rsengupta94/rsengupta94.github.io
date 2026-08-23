@@ -1,0 +1,30 @@
+{%- comment -%}
+  Contact band deactivated 2026-08-23 — not to go live yet. To reactivate,
+  remove this comment wrapper (and its endcomment at the bottom of the file).
+{%- endcomment -%}
+{%- comment -%}
+<section class="contact" aria-label="Contact">
+  <div class="contact-inner wrap">
+    <h2>
+      <span>Hiring for applied AI?</span>
+      <span>Let's talk.</span>
+    </h2>
+    <div class="btn-row">
+      <a class="btn" href="mailto:{{ site.email }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+        {{ site.email }}</a>
+      {%- comment -%}
+        Shown only once `resume_url` is set in _config.yml. This band is on every
+        page, so an unset value would put a 404 link sitewide.
+      {%- endcomment -%}
+      {%- if site.resume_url != "" %}
+      <a class="btn" href="{{ site.resume_url | relative_url }}" target="_blank" rel="noopener">Resume
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a>
+      {%- endif %}
+    </div>
+    <p class="note">Replies within two working days. DMs open on
+      <a href="{{ site.github_url }}" target="_blank" rel="noopener">GitHub</a> and
+      <a href="{{ site.linkedin_url }}" target="_blank" rel="noopener">LinkedIn</a>.</p>
+  </div>
+</section>
+{%- endcomment -%}

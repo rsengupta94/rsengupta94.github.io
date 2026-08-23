@@ -1,0 +1,20 @@
+{%- comment -%}
+  Active state is resolved at build time from the page URL, so it works with
+  JavaScript disabled. Section pages and their detail pages share a prefix
+  (/work/ and /work/<slug>/), so `contains` marks both.
+{%- endcomment -%}
+{%- assign u = page.url -%}
+<nav class="nav site-nav" aria-label="Main">
+  <a href="{{ '/' | relative_url }}"{% if u == '/' %} aria-current="page"{% endif %}>About</a>
+  <a href="{{ '/experiments/' | relative_url }}"{% if u contains '/experiments' %} aria-current="page"{% endif %}>Experiments</a>
+  <a href="{{ '/work/' | relative_url }}"{% if u contains '/work' %} aria-current="page"{% endif %}>Work</a>
+  <a href="{{ '/articles/' | relative_url }}"{% if u contains '/articles' %} aria-current="page"{% endif %}>Articles</a>
+  {%- comment -%}
+    Experience is not live yet — experience.html carries `published: false`, so
+    this link would 404. Uncomment it when that page is published again.
+  {%- endcomment -%}
+  {%- comment %}
+  <a href="{{ '/experience/' | relative_url }}"{% if u contains '/experience' %} aria-current="page"{% endif %}>Experience</a>
+  {% endcomment -%}
+  <button type="button" id="theme-toggle" class="btn btn-secondary btn-icon theme-toggle" aria-label="Toggle dark mode"></button>
+</nav>

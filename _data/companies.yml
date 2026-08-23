@@ -1,0 +1,13 @@
+# Logo strip on the About page. `height` is the rendered height in px.
+- src: /assets/logo-coursera.svg
+  alt: Coursera
+  height: 26
+- src: /assets/logo-deshaw.png
+  alt: D. E. Shaw & Co
+  height: 36
+- src: /assets/logo-amazon.png
+  alt: Amazon
+  height: 44
+- src: /assets/logo-pwc-ink.png
+  alt: PwC
+  height: 42

@@ -1,0 +1,35 @@
+---
+layout: default
+---
+<main id="main" class="wrap">
+  <article class="detail detail-article">
+    <a class="back-link" href="{{ '/articles/' | relative_url }}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+      All articles</a>
+
+    <h1>{{ page.title }}</h1>
+
+    {%- comment -%}
+      Read time is computed from the actual word count at 200 wpm, so it is one
+      less field to fill in and it stays honest if the article is expanded later.
+    {%- endcomment -%}
+    {%- assign read_minutes = content | number_of_words | divided_by: 200 | at_least: 1 -%}
+    <p class="article-meta">
+      <time class="num" datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%b %Y" }}</time>
+      <span>·</span>
+      <span>{{ read_minutes }} min read</span>
+      {%- if page.tag %}<span class="tag tag-accent">{{ page.tag }}</span>{% endif -%}
+    </p>
+
+    <hr class="rule">
+
+    <div class="prose-body">
+      {{ content }}
+    </div>
+
+    <hr class="rule closing-rule">
+    <p class="footnote">Spotted an error?
+      <a href="{{ site.source_url }}/issues" target="_blank" rel="noopener">Open an issue ↗</a>
+      — every article is a markdown file in the site's repo.</p>
+  </article>
+</main>

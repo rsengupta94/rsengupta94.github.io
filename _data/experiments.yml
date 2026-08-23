@@ -1,0 +1,11 @@
+# Experiments shown on /experiments/. Order here is page order — numerals are
+# generated from list position. Shape and guidance: _templates/experiments.yml
+
+- title: "reasoning_verifier"
+  summary: >-
+    Eval harness for local reasoning models. Point a small YAML at any HF reasoning
+    dataset, get accuracy numbers that you can verify.
+  tags: [Python, Evals]
+  links:
+    - { label: Repository, href: "https://github.com/rsengupta94/reasoning_verifier" }
+    - { label: Write-up,   href: "/articles/reasoning-eval-harness/" }

@@ -1,0 +1,17 @@
+{%- comment -%}
+  Stands in for a section's list while that section has no content yet.
+
+  Structure only. The sentence under the heading comes from
+  `coming_soon_note` in the page's own front matter, so the copy stays with
+  the page and is never written here.
+
+  A page using this should also carry `noindex: true` and `sitemap: false`.
+  An empty page indexed now, then filled with real content later, competes
+  with itself in search — better to let Google find it once it is real.
+{%- endcomment -%}
+<div class="coming-soon">
+  <h2>Coming soon.</h2>
+  {%- if page.coming_soon_note %}
+  <p class="lede">{{ page.coming_soon_note }}</p>
+  {%- endif %}
+</div>

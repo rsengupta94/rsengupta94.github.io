@@ -50,14 +50,9 @@
 .page-head .lede {
   font-size: 16px;
   line-height: 1.65;
-  max-width: 56ch;
   margin: 20px 0 0;
   color: color-mix(in srgb, var(--color-text) 78%, transparent);
 }
-
-.muted-78 { color: color-mix(in srgb, var(--color-text) 78%, transparent); }
-.muted-65 { color: color-mix(in srgb, var(--color-text) 65%, transparent); }
-.muted-60 { color: color-mix(in srgb, var(--color-text) 60%, transparent); }
 
 /* ── home: hero ────────────────────────────────────────────────────── */
 
@@ -189,11 +184,14 @@ body[data-pf-theme="dark"] .logo-cell img {
 /* ── experiments ───────────────────────────────────────────────────── */
 
 .exp-list { margin-bottom: 72px; }
+/* Four columns: numeral · title+summary · chips (centered in the middle band)
+   · links. Chips and links carry a top offset to sit on the summary's first
+   line, below the 24px title. */
 .exp-item {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px 40px;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 52ch) 1fr 1fr;
+  column-gap: 40px;
+  align-items: start;
   padding: 36px 0;
   border-top: 1px solid var(--color-divider);
 }
@@ -207,7 +205,7 @@ body[data-pf-theme="dark"] .logo-cell img {
   margin: 0;
   font-feature-settings: 'tnum' 1;
 }
-.exp-main { flex: 1 1 380px; min-width: 0; }
+.exp-main { min-width: 0; }
 .exp-main h2 {
   font-size: 24px;
   line-height: 1.15;
@@ -221,21 +219,44 @@ body[data-pf-theme="dark"] .logo-cell img {
   margin: 0;
   color: color-mix(in srgb, var(--color-text) 78%, transparent);
 }
-.exp-side {
-  flex: 1 1 220px;
+.exp-side { margin-top: 42px; justify-self: center; }
+.exp-item .tags {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-self: center;
+  margin-top: 40px;
 }
-.exp-side .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.exp-side .stat {
-  font-size: 12px;
-  margin: 0;
-  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+.exp-item .tag {
+  font-size: 13px;
+  background: var(--color-surface);
 }
-.exp-side .links { display: flex; gap: 16px; }
+@media (max-width: 760px) {
+  .exp-item { grid-template-columns: 36px 1fr; row-gap: 14px; }
+  .exp-item .tags { grid-column: 2; justify-self: start; margin-top: 0; }
+  .exp-side { grid-column: 2; margin-top: 0; }
+}
+.exp-side .links { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .exp-side .links a { font-size: 14px; }
+
+/* ── coming soon ───────────────────────────────────────────────────── */
+
+/* Sits where a section's list would be, so the page keeps its rhythm — same
+   32px offset and 2px top rule the .art-list and .work-list use. */
+.coming-soon {
+  margin: 32px 0 72px;
+  padding: 56px 0;
+  border-top: 2px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
+}
+.coming-soon h2 { font-size: 28px; margin: 0; }
+.coming-soon .lede {
+  font-size: 16px;
+  line-height: 1.65;
+  max-width: 56ch;
+  margin: 16px 0 0;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+}
 
 /* ── work index ────────────────────────────────────────────────────── */
 
@@ -333,11 +354,79 @@ body[data-pf-theme="dark"] .logo-cell img {
   color: color-mix(in srgb, var(--color-text) 65%, transparent);
 }
 .detail .rule { margin-bottom: 32px; }
-.detail .prose {
+
+/* Body copy generated from markdown, so these target raw elements rather
+   than classes — Kramdown emits plain <p>, <h2>, <ul>, <pre> and so on. */
+.prose-body p {
   font-size: 16.5px;
   line-height: 1.75;
   margin: 0 0 22px;
   color: color-mix(in srgb, var(--color-text) 88%, transparent);
+}
+.prose-body h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 36px 0 14px;
+}
+.prose-body h3 {
+  font-size: 19px;
+  line-height: 1.25;
+  margin: 30px 0 12px;
+}
+.prose-body ul,
+.prose-body ol {
+  font-size: 16.5px;
+  line-height: 1.75;
+  margin: 0 0 22px;
+  padding-left: 22px;
+  color: color-mix(in srgb, var(--color-text) 88%, transparent);
+}
+.prose-body li { margin-bottom: 6px; }
+.prose-body blockquote {
+  margin: 0 0 22px;
+  padding-left: 18px;
+  border-left: 2px solid var(--color-accent);
+  color: color-mix(in srgb, var(--color-text) 75%, transparent);
+}
+.prose-body img { margin: 0 0 22px; }
+.prose-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15.5px;
+  line-height: 1.6;
+  margin: 6px 0 26px;
+}
+.prose-body th,
+.prose-body td {
+  text-align: left;
+  padding: 10px 20px 10px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+.prose-body th {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  border-bottom-width: 2px;
+}
+.prose-body :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: var(--color-code);
+  font-weight: 700;
+}
+.prose-body pre > code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+/* Rouge syntax colors: keys/names green, values blue, comments muted.
+   Everything bold except comments. */
+.prose-body .highlight code { font-weight: 700; }
+.prose-body .highlight .na { color: var(--color-code-key); }
+.prose-body .highlight .s { color: var(--color-code); }
+.prose-body .highlight .c1 {
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  font-weight: 400;
 }
 .detail pre {
   font-family: var(--font-mono);
@@ -567,11 +656,6 @@ body[data-pf-theme="dark"] .logo-cell img {
   color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
 .site-footer a { color: inherit; }
-
-.noscript-note {
-  padding: 48px 0;
-  font-size: 16px;
-}
 
 @media (max-width: 600px) {
   .work-outcome, .xp-when { width: 100%; }

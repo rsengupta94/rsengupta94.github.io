@@ -1,0 +1,19 @@
+# Shape of an entry in _data/experiments.yml — the /experiments/ page.
+#
+# Order here is the order on the page. The 01/02/03 numerals are generated from
+# list position, so entries can be added, removed or reordered freely — there is
+# no `num:` field and nothing to renumber.
+#
+# `stat` is free text shown small on the right (e.g. a licence, a star count).
+# Only put a number there you can point at; it is a public claim.
+# Every `href` must be a real URL — a "#" placeholder renders as a dead link,
+# and scripts/validate.rb warns about them.
+
+- title: ""
+  summary: >-
+
+  tags: []                    # e.g. [Go, Kafka]
+  stat: ""                    # e.g. "MIT" or "★ 120 · MIT"
+  links:
+    - { label: Repository, href: "" }
+    - { label: Write-up,   href: "" }

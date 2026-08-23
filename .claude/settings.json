@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bundle exec jekyll serve:*)",
+      "Bash(bundle exec jekyll build:*)",
+      "Bash(ruby scripts/validate.rb:*)",
+      "Bash(pgrep:*)",
+      "Bash(curl -s -o /dev/null -w:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)"
+    ]
+  }
+}

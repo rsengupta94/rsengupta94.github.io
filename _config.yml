@@ -1,0 +1,84 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Site configuration. GitHub Pages reads this and builds the site on push.
+#
+# ⚠️  The values marked TODO are placeholders carried over from the design
+# mockup. Replace them before publishing — `url` in particular, because
+# canonical tags and sitemap.xml are generated from it and search engines
+# rely on both.
+# ═══════════════════════════════════════════════════════════════════════
+
+title: Rajarshi Sengupta
+tagline: I make AI work in production.
+description: >-
+  Product-minded engineer working across data.
+
+# TODO: must match where the site is actually published.
+url: "https://rsengupta94.github.io"
+baseurl: ""
+
+author:
+  name: Rajarshi Sengupta
+
+# TODO: real contact details and links.
+email: rajarshisengupta94@gmail.com
+github_url: https://github.com/rsengupta94
+linkedin_url: https://www.linkedin.com/in/rajarshi-sengupta/
+source_url: https://github.com/rsengupta94/rsengupta94.github.io
+# Blank hides every resume button and link. Set it to /resume.pdf (and add the
+# file at the repo root) and they all reappear — see index.html and
+# _includes/contact.html.
+resume_url: ""
+
+# Leave blank to show a placeholder box instead of a photo.
+portrait: "/assets/portrait.jpg"
+
+now: "Senior Tech Innovation Strategist at Coursera, India · UTC+5:30"
+open_to: "Staff-level AI Product, Solution Engineer roles"
+
+# Articles live in _posts and publish at /articles/<slug>/
+permalink: /articles/:title/
+
+collections:
+  work:
+    output: true
+    permalink: /work/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: article
+  - scope:
+      path: ""
+      type: work
+    values:
+      layout: work
+
+# Match GitHub Pages' markdown handling so local preview renders identically.
+markdown: kramdown
+kramdown:
+  input: GFM
+
+# Both plugins are on the GitHub Pages allowlist, so the native build runs
+# them without any Actions workflow.
+#   jekyll-seo-tag  → per-page title, description, canonical, Open Graph, JSON-LD
+#   jekyll-sitemap  → sitemap.xml covering every generated page
+#   jekyll-redirect-from → keeps old URLs working after a rename or retirement
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-redirect-from
+
+# Repo-only files. Anything not listed here is copied into the published site as
+# a static file, so working notes and tooling need to be named explicitly.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - CLAUDE.md
+  - USAGE.md
+  - _inbox
+  - scripts
+  - vendor
+  - .jekyll-cache
