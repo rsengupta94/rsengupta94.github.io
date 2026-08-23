@@ -47,6 +47,12 @@ collections:
     permalink: /work/:name/
 
 defaults:
+  # Site-wide social-share image (Open Graph / LinkedIn / Twitter cards),
+  # emitted by jekyll-seo-tag. A page can override it with its own image:.
+  - scope:
+      path: ""
+    values:
+      image: /assets/og-image.png
   - scope:
       path: ""
       type: posts
