@@ -52,7 +52,9 @@ defaults:
   - scope:
       path: ""
     values:
-      image: /assets/og-image.png
+      # The ?v= suffix busts LinkedIn's ~7-day image cache; bump it whenever
+      # the image file changes.
+      image: /assets/og-image.png?v=2
   - scope:
       path: ""
       type: posts
