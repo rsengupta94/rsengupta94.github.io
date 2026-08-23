@@ -12,9 +12,12 @@ tagline: I make AI work in production.
 description: >-
   Product-minded engineer working across data.
 
-# TODO: must match where the site is actually published.
 url: "https://rsengupta94.github.io"
 baseurl: ""
+
+# Google Search Console ownership proof — jekyll-seo-tag emits it as a
+# <meta name="google-site-verification"> tag in <head>.
+google_site_verification: E53jzRcLgLTaQZ7GyHFJ9iaB8UDXsviKtVK0ax0jKBE
 
 author:
   name: Rajarshi Sengupta
