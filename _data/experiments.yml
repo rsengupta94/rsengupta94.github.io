@@ -9,3 +9,13 @@
   links:
     - { label: Repository, href: "https://github.com/rsengupta94/reasoning_verifier" }
     - { label: Write-up,   href: "/articles/reasoning-eval-harness/" }
+
+- title: "learning-os-beta"
+  summary: >-
+    Demo application of an Agent Skills based tool. Used for rapidly upskilling on
+    Applied AI concepts, suitable for Product Builders who wants to learn, understand
+    and apply.
+  tags: [Markdown, Agent Skills]
+  stat: "MIT"
+  links:
+    - { label: Repository, href: "https://github.com/rsengupta94/learning-os-beta" }
