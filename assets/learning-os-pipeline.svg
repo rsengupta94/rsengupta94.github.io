@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 70 1200 160" width="1200" height="160" font-family="-apple-system, Helvetica, Arial, sans-serif">
+
+  <!-- chevrons -->
+  <g stroke="#ffffff" stroke-width="3">
+    <path d="M40,90 H300 L340,150 L300,210 H40 L80,150 Z" fill="#1d4ed8"/>
+    <path d="M320,90 H580 L620,150 L580,210 H320 L360,150 Z" fill="#2563eb"/>
+    <path d="M600,90 H860 L900,150 L860,210 H600 L640,150 Z" fill="#3b82f6"/>
+    <path d="M880,90 H1140 L1180,150 L1140,210 H880 L920,150 Z" fill="#60a5fa"/>
+  </g>
+
+  <!-- labels -->
+  <g fill="#ffffff" text-anchor="middle">
+    <text x="200" y="140" font-size="30" font-weight="700" font-family="Menlo, Consolas, monospace">/absorb</text>
+    <text x="200" y="178" font-size="18">Capture</text>
+
+    <text x="480" y="140" font-size="30" font-weight="700" font-family="Menlo, Consolas, monospace">/synth</text>
+    <text x="480" y="178" font-size="18">Learn</text>
+
+    <text x="760" y="140" font-size="30" font-weight="700" font-family="Menlo, Consolas, monospace">/ideate</text>
+    <text x="760" y="178" font-size="18">Generate</text>
+
+    <text x="1040" y="140" font-size="30" font-weight="700" font-family="Menlo, Consolas, monospace">/apply</text>
+    <text x="1040" y="178" font-size="18">Build</text>
+  </g>
+
+
+</svg>

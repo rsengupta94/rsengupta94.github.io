@@ -413,6 +413,7 @@ body[data-pf-theme="dark"] .logo-cell img {
   color: var(--color-code);
   font-weight: 700;
 }
+.prose-body .term { color: var(--color-code); font-weight: 700; }
 .prose-body pre > code {
   background: none;
   border: 0;

@@ -19,3 +19,4 @@
   stat: "MIT"
   links:
     - { label: Repository, href: "https://github.com/rsengupta94/learning-os-beta" }
+    - { label: Write-up,   href: "/articles/agent-skills-tools/" }
