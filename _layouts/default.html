@@ -26,8 +26,8 @@
   {%- comment -%}
     Two title shapes, split by what the page competes for:
 
-    • Content pages (articles, case studies) rank for topic queries, so they
-      spend the whole ~60-char budget on the topic and carry no brand.
+    • Content pages (articles, playbooks, case studies) rank for topic queries,
+      so they spend the whole ~60-char budget on the topic and carry no brand.
     • Navigational pages (home, section indexes) rank for brand queries and
       would otherwise be vague 8-character titles like "Articles" — which are
       rewritten more than half the time. They get the name appended.
@@ -39,7 +39,7 @@
   <title>
     {%- if page.url == '/' -%}
       {{ site.title }} — {{ site.tagline }}
-    {%- elsif page.layout == 'article' or page.layout == 'work' -%}
+    {%- elsif page.layout == 'article' or page.layout == 'work' or page.layout == 'playbook' -%}
       {{ page.title }}
     {%- else -%}
       {{ page.title }} - {{ site.title }}

@@ -108,6 +108,11 @@ Three traps: **future-dated posts don't publish** (Jekyll skips them, silently);
 a filename not matching `YYYY-MM-DD-slug.md` is ignored, also silently; and
 changing a slug after publishing breaks every existing link to it.
 
+**Playbooks** work the same way: copy `_templates/playbook.md` to
+`_playbooks/YYYY-MM-DD-slug.md`, and it publishes at `/playbooks/slug/`. A
+future date is worse here — the page isn't built, but the playbooks index still
+links to it.
+
 ## Editing
 
 Edit any file, then commit and push — that's the whole loop. For small fixes you
@@ -122,11 +127,11 @@ can edit directly on github.com with the pencil icon and skip the clone entirely
 | Experiments list | `_data/experiments.yml` |
 | Job history | `_data/experience.yml` |
 | A case study | `_work/<slug>.md` |
-| A section page's heading and intro | `articles.html`, `work.html`, `experiments.html`, `experience.html` |
+| A section page's heading and intro | `articles.html`, `playbooks.html`, `work.html`, `experiments.html`, `experience.html` |
 | Nav links | `_includes/nav.html` |
 | Contact band | `_includes/contact.html` |
 | Footer | `_includes/footer.html` |
-| Every article page at once | `_layouts/article.html` |
+| Every article and playbook page at once | `_layouts/article.html` |
 | Every case study at once | `_layouts/work.html` |
 | Colors, fonts, spacing tokens | `css/modernist.css` |
 | Page layout | `css/site.css` |
@@ -178,14 +183,17 @@ block it in `robots.txt`, or Google never sees the `noindex`.
 
 ```
 _config.yml         site settings and collection/permalink config
-_layouts/           default.html (page shell), article.html, work.html
+_layouts/           default.html (page shell), article.html, work.html,
+                    playbook.html (full-page HTML playbooks)
 _includes/          nav, contact band, footer — shared by every page
 _data/              companies, stack, experiments, experience
 _templates/         skeletons to copy for new content — not published
 _posts/             articles → /articles/<slug>/
+_playbooks/         playbooks → /playbooks/<slug>/
 _work/              case studies → /work/<slug>/
 index.html          About page
 articles.html       articles index (loops over _posts)
+playbooks.html      playbooks index (loops over _playbooks)
 work.html           work index (loops over _work)
 experiments.html    experiments index
 experience.html     experience page

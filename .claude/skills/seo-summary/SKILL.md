@@ -1,6 +1,6 @@
 ---
 name: seo-summary
-description: Draft and check a page's SEO title and description against researched best practice. Use when adding an article or case study, when the user says "write the SEO summary", "check the description", "improve the snippet", or when a description field is empty or marked TODO.
+description: Draft and check a page's SEO title and description against researched best practice. Use when adding an article, playbook or case study, when the user says "write the SEO summary", "check the description", "improve the snippet", or when a description field is empty or marked TODO.
 ---
 
 # Draft the SEO title and description
@@ -32,8 +32,9 @@ number, a named tool, a threshold), and who would search for it.
 Target **51–60 characters.** This is the band where Google rewrites titles least
 (39–42%, versus over 76% past 60 and 99.9% past 70).
 
-- **The front-matter `title` is the whole rendered title** for articles and case
-  studies — the layout adds no brand suffix, so the budget is all yours.
+- **The front-matter `title` is the whole rendered title** for articles,
+  playbooks and case studies — the layout adds no brand suffix, so the budget is
+  all yours.
 - **Match the visible H1** — which is automatic here, since `title` generates
   both. Never introduce a diverging SEO title.
 - **No repeated words.** Google treats repetition in titles as keyword stuffing.
@@ -53,10 +54,10 @@ them decide. Do not rephrase a working title for style.
 
 ## The description
 
-**Target 120–145 characters for articles.** Not the 155–160 commonly quoted:
-articles here display a publish date, and Google's visible snippet shrinks to
-about 142 characters on desktop and 95–105 on mobile when a date is shown. Case
-studies show no date and can run to 155.
+**Target 120–145 characters for articles and playbooks.** Not the 155–160
+commonly quoted: both display a publish date, and Google's visible snippet
+shrinks to about 142 characters on desktop and 95–105 on mobile when a date is
+shown. Case studies show no date and can run to 155.
 
 **Put everything load-bearing in the first ~120 characters** — that is all mobile
 shows.

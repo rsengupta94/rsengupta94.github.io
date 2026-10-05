@@ -8,6 +8,7 @@
   <a href="{{ '/' | relative_url }}"{% if u == '/' %} aria-current="page"{% endif %}>About</a>
   <a href="{{ '/experiments/' | relative_url }}"{% if u contains '/experiments' %} aria-current="page"{% endif %}>Experiments</a>
   <a href="{{ '/work/' | relative_url }}"{% if u contains '/work' %} aria-current="page"{% endif %}>Work</a>
+  <a href="{{ '/playbooks/' | relative_url }}"{% if u contains '/playbooks' %} aria-current="page"{% endif %}>Playbooks</a>
   <a href="{{ '/articles/' | relative_url }}"{% if u contains '/articles' %} aria-current="page"{% endif %}>Articles</a>
   {%- comment -%}
     Experience is not live yet — experience.html carries `published: false`, so

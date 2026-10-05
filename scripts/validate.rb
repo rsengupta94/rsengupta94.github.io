@@ -10,8 +10,9 @@
 #   2. Renamed/removed slugs     → breaks live URLs and search rankings
 #   3. Colliding slugs           → one page silently shadows another
 #
-# Traps 2 and 3 apply to both collections: articles in _posts and case studies in
-# _work. Plus cheaper checks for missing front matter and SEO fields.
+# Traps 2 and 3 apply to every collection: articles in _posts, playbooks in
+# _playbooks and case studies in _work. Plus cheaper checks for missing front
+# matter and SEO fields.
 #
 # Uses Psych (Ruby's stdlib YAML), the same parser Jekyll uses, so anything that
 # parses here parses there.
@@ -75,7 +76,7 @@ def read_front_matter(path)
   [data, m[2]]
 end
 
-# Title, description and body checks. Identical for both collections except the
+# Title, description and body checks. Identical for every collection except the
 # description budget: anything rendering a publish date gets a smaller one,
 # because the date eats into the snippet Google displays.
 #
@@ -141,50 +142,123 @@ def check_content(path, errors, warnings, dated:)
 end
 
 # ── trap 1 + 3: filenames, dates, slug collisions ────────────────────────────
+#
+# Articles and playbooks share the dated-filename convention, so they share these
+# checks. What a bad date or filename does differs, and the messages say which:
+# Jekyll's post reader drops a future-dated or undated post outright, while any
+# other collection keeps the document — /playbooks/ and sitemap.xml still list
+# it — and only skips writing its page.
 
-posts = Dir[File.join(ROOT, '_posts', '*.{md,markdown,html}')].sort
+DATED = {
+  '_posts' => {
+    prefix: '/articles/',
+    future: 'Jekyll will skip it and the article will NOT appear',
+    undated: 'Jekyll ignores anything else, silently, so this post would never publish'
+  },
+  '_playbooks' => {
+    prefix: '/playbooks/',
+    future: 'Jekyll will not build its page, yet /playbooks/ and sitemap.xml ' \
+            'still list it — links straight to a 404',
+    undated: 'without the date Jekyll stamps it with the build time, so its ' \
+             'displayed date changes on every deploy'
+  }
+}.freeze
+
 today = Date.today
-slugs = {}
 
-posts.each do |path|
-  name = File.basename(path)
+# Returns [paths, { slug => path }] for one dated collection.
+def check_dated(dir, meta, today, errors, warnings)
+  paths = Dir[File.join(ROOT, dir, '*.{md,markdown,html}')].sort
+  slugs = {}
 
-  # Filename problems don't stop the content checks below — surfacing everything
-  # in one pass beats a fix-then-rerun-for-more-errors loop.
-  if (m = /\A(\d{4})-(\d{2})-(\d{2})-(.+)\.(md|markdown|html)\z/.match(name))
-    slug = m[4]
+  paths.each do |path|
+    name = File.basename(path)
 
-    date = begin
-      Date.new(m[1].to_i, m[2].to_i, m[3].to_i)
-    rescue ArgumentError
-      errors << "#{rel(path)}: #{m[1]}-#{m[2]}-#{m[3]} is not a real date"
-      nil
-    end
+    # Filename problems don't stop the content checks below — surfacing everything
+    # in one pass beats a fix-then-rerun-for-more-errors loop.
+    if (m = /\A(\d{4})-(\d{2})-(\d{2})-(.+)\.(md|markdown|html)\z/.match(name))
+      slug = m[4]
 
-    # TRAP 1 — future dates publish nothing, with no warning from Jekyll.
-    if date && date > today
-      errors << "#{rel(path)}: dated #{date} which is in the future — Jekyll will " \
-                "skip it and the article will NOT appear (today is #{today}). " \
-                'Rename the file with today\'s date or earlier.'
-    end
+      date = begin
+        Date.new(m[1].to_i, m[2].to_i, m[3].to_i)
+      rescue ArgumentError
+        errors << "#{rel(path)}: #{m[1]}-#{m[2]}-#{m[3]} is not a real date"
+        nil
+      end
 
-    # TRAP 3 — two files resolving to one URL.
-    if slugs.key?(slug)
-      errors << "#{rel(path)}: slug '#{slug}' already used by " \
-                "#{rel(slugs[slug])} — both want /articles/#{slug}/, so one " \
-                'would shadow the other'
+      # TRAP 1 — future dates publish nothing, with no warning from Jekyll.
+      if date && date > today
+        errors << "#{rel(path)}: dated #{date} which is in the future — " \
+                  "#{meta[:future]} (today is #{today}). " \
+                  'Rename the file with today\'s date or earlier.'
+      end
+
+      # TRAP 3 — two files resolving to one URL.
+      if slugs.key?(slug)
+        errors << "#{rel(path)}: slug '#{slug}' already used by " \
+                  "#{rel(slugs[slug])} — both want #{meta[:prefix]}#{slug}/, so one " \
+                  'would shadow the other'
+      else
+        slugs[slug] = path
+      end
     else
-      slugs[slug] = path
+      errors << "#{rel(path)}: filename must be YYYY-MM-DD-slug.md — #{meta[:undated]}"
     end
-  else
-    errors << "#{rel(path)}: filename must be YYYY-MM-DD-slug.md — Jekyll ignores " \
-              'anything else, silently, so this post would never publish'
+
+    data = check_content(path, errors, warnings, dated: true)
+    next unless data
+
+    warnings << "#{rel(path)}: no 'tag' set" if data['tag'].to_s.strip.empty?
   end
 
-  data = check_content(path, errors, warnings, dated: true)
+  [paths, slugs]
+end
+
+posts, slugs = check_dated('_posts', DATED['_posts'], today, errors, warnings)
+playbooks, playbook_slugs = check_dated('_playbooks', DATED['_playbooks'], today, errors, warnings)
+
+# ── playbook series ──────────────────────────────────────────────────────────
+#
+# A playbook in a series carries `series` and `part`. /playbooks/ groups by the
+# first, orders by the second, and shows the title minus its "<series>: "
+# prefix — so a gap in any of the three shows up as a visible glitch there.
+
+series_parts = {}
+playbooks.each do |path|
+  data, = read_front_matter(path)
   next unless data
 
-  warnings << "#{rel(path)}: no 'tag' set" if data['tag'].to_s.strip.empty?
+  series = data['series'].to_s.strip
+  part = data['part']
+
+  if series.empty?
+    unless part.nil?
+      warnings << "#{rel(path)}: 'part' is set but 'series' is not — /playbooks/ " \
+                  'only shows part numbers inside a series'
+    end
+    next
+  end
+
+  unless data['title'].to_s.start_with?("#{series}: ")
+    warnings << "#{rel(path)}: title should start with \"#{series}: \" — /playbooks/ " \
+                'strips that prefix for the row, and the full title is what Google ' \
+                'and the browser tab show'
+  end
+
+  unless part.is_a?(Integer) && part.positive?
+    warnings << "#{rel(path)}: in series \"#{series}\" but 'part' is missing or not a " \
+                "whole number — /playbooks/ would show \"Part #{part} ·\" and sort it " \
+                'unpredictably'
+    next
+  end
+
+  key = [series, part]
+  if series_parts.key?(key)
+    warnings << "#{rel(path)}: part #{part} of \"#{series}\" is also used by " \
+                "#{rel(series_parts[key])} — the two sort arbitrarily against each other"
+  else
+    series_parts[key] = path
+  end
 end
 
 # ── work case studies ────────────────────────────────────────────────────────
@@ -238,15 +312,16 @@ end
 
 # ── trap 2: a published URL must never stop resolving ────────────────────────
 #
-# Git history is the record of what has been published. Any article or case study
-# that has ever been committed must still resolve, either because the file is
+# Git history is the record of what has been published. Any article, playbook or
+# case study that has ever been committed must still resolve, either because the file is
 # still there or because a redirect now covers it (see the retire-content
 # workflow). Renaming a file is indistinguishable from delete + create, which is
 # exactly why this check exists.
 
 COLLECTIONS = {
-  '_posts' => { prefix: '/articles/', dated: true },
-  '_work'  => { prefix: '/work/',     dated: false }
+  '_posts'     => { prefix: '/articles/',  dated: true },
+  '_playbooks' => { prefix: '/playbooks/', dated: true },
+  '_work'      => { prefix: '/work/',      dated: false }
 }.freeze
 
 # "/articles/foo", "articles/foo" and "/articles/foo/" all name one URL.
@@ -254,8 +329,8 @@ def normalize_url(path)
   "/#{path.to_s.strip.split('/').reject(&:empty?).join('/')}/"
 end
 
-# Every slug ever committed under `dir`. A _posts filename carries a date prefix
-# that is not part of its URL; a _work filename is the slug itself.
+# Every slug ever committed under `dir`. A _posts or _playbooks filename carries a
+# date prefix that is not part of its URL; a _work filename is the slug itself.
 def committed_slugs(dir, dated:)
   return Set.new unless Dir.exist?(File.join(ROOT, '.git'))
 
@@ -272,9 +347,9 @@ def committed_slugs(dir, dated:)
 end
 
 # Every URL a redirect stub currently keeps alive. `redirect_from` can sit on
-# either collection — a case study may well supersede an article — and it is
+# any collection — a case study may well supersede an article — and it is
 # matched as a full path, so /articles/x/ and /work/x/ stay distinct.
-redirect_urls = (posts + works).each_with_object(Set.new) do |path, set|
+redirect_urls = (posts + playbooks + works).each_with_object(Set.new) do |path, set|
   data, = read_front_matter(path)
   next unless data
 
@@ -282,6 +357,7 @@ redirect_urls = (posts + works).each_with_object(Set.new) do |path, set|
 end
 
 live_urls = slugs.keys.map { |s| "/articles/#{s}/" }
+                 .concat(playbook_slugs.keys.map { |s| "/playbooks/#{s}/" })
                  .concat(work_slugs.keys.map { |s| "/work/#{s}/" })
                  .to_set
 
@@ -300,7 +376,7 @@ end
 # ── duplicate descriptions across pages ─────────────────────────────────────
 
 seen_desc = {}
-(posts + works).each do |path|
+(posts + playbooks + works).each do |path|
   data, = read_front_matter(path)
   next unless data
 
@@ -334,7 +410,7 @@ if File.exist?(config_path)
 end
 
 placeholder_hits = []
-%w[_data _posts _work index.html].each do |target|
+%w[_data _posts _playbooks _work index.html].each do |target|
   Dir[File.join(ROOT, target, '**', '*')].each do |path|
     next unless File.file?(path)
 
@@ -391,11 +467,11 @@ unless warnings.empty?
 end
 
 if errors.empty? && warnings.empty?
-  puts "✓ #{posts.size} article(s) and #{works.size} project(s) checked — " \
+  puts "✓ #{posts.size} article(s), #{playbooks.size} playbook(s) and #{works.size} project(s) checked — " \
        'no problems found.'
   puts
 elsif errors.empty?
-  puts "✓ No errors. #{posts.size} article(s) and #{works.size} project(s) " \
+  puts "✓ No errors. #{posts.size} article(s), #{playbooks.size} playbook(s) and #{works.size} project(s) " \
        'checked. Safe to publish.'
   puts
 end

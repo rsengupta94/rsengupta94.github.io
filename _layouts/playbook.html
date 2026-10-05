@@ -1,0 +1,33 @@
+---
+layout: default
+---
+{%- comment -%}
+  For playbooks that arrive as a complete page with their own design. They sit
+  inside the site shell like an article — nav, theme toggle, footer, SEO tags —
+  with their styles, fonts and script coming in with the content. Their
+  stylesheet is scoped to .playbook so it cannot restyle the nav or footer, and
+  its dark mode keys off the site toggle (body[data-pf-theme]).
+  Markdown playbooks use the article layout instead (the _config.yml default).
+{%- endcomment %}
+<script>
+  /* The site nav is sticky, and so is the playbook's own tab bar. Park the bar,
+     its side menu and anchor jumps just below the nav, at whatever height the
+     nav wraps to. CSS falls back to 62px, the one-row nav height. */
+  (function () {
+    var nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    function set() { document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px'); }
+    set();
+    window.addEventListener('resize', set);
+  })();
+</script>
+
+<div class="wrap playbook-back">
+  <a class="back-link" href="{{ '/playbooks/' | relative_url }}">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    All playbooks</a>
+</div>
+
+<div class="playbook" id="main">
+{{ content }}
+</div>

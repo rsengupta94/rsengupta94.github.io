@@ -20,6 +20,14 @@
 }
 .site-nav .theme-toggle { margin-left: auto; }
 
+/* Five links plus the toggle need ~398px at full size, wider than most phones.
+   Below that, tighter spacing keeps one row down to 360px; anything narrower
+   wraps rather than pushing the toggle off-screen. */
+@media (max-width: 400px) {
+  .site-nav { flex-wrap: wrap; gap: 8px; }
+  .site-nav a { font-size: 13px; }
+}
+
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -70,15 +78,6 @@
   letter-spacing: -0.02em;
   margin: 0 0 0 -0.058em;
   white-space: nowrap;
-}
-.hero-tagline {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: clamp(20px, 2.3vw, 29px);
-  line-height: 1.15;
-  letter-spacing: -0.015em;
-  color: var(--color-accent);
-  margin: 14px 0 0 -0.03em;
 }
 .hero p.body {
   font-size: 16px;
@@ -333,6 +332,9 @@ body[data-pf-theme="dark"] .logo-cell img {
 .detail { padding: 56px 0 72px; }
 .detail-work { max-width: 840px; }
 .detail-article { max-width: 720px; }
+/* Full-page playbooks (_layouts/playbook.html): the back link sits where it
+   does on an article, 56px below the nav. */
+.playbook-back { padding-top: 56px; }
 
 .back-link {
   display: inline-flex;
@@ -517,6 +519,15 @@ body[data-pf-theme="dark"] .logo-cell img {
   margin: 32px 0 72px;
   border-top: 2px solid var(--color-divider);
 }
+/* Playbooks index: a series name heads its parts, in the red the playbook
+   pages use for it. */
+.series-name {
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--color-accent);
+  margin: 32px 0 0;
+}
+.series-name + .art-list { margin-top: 14px; }
 .art-item {
   display: flex;
   flex-wrap: wrap;

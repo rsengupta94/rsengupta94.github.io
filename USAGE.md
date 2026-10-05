@@ -34,15 +34,15 @@ Check for a server already running before starting another: `pgrep -f "jekyll se
 
 ### The drop folder
 
-Put a finished `.md` file in `_inbox/`, then say "new article" or "new project"
-in Claude Code. No file path needed.
+Put a finished `.md` file in `_inbox/`, then say "new article", "new playbook"
+or "new project" in Claude Code. No file path needed.
 
 You approve two things. Claude does everything else:
 
 | Yours to approve | Handled for you |
 | --- | --- |
 | The slug, because it becomes the URL and is permanent | Filename and date |
-| The SEO `description`, drafted from your own text | Front matter, `tag`, placement in `_posts/` or `_work/` |
+| The SEO `description`, drafted from your own text | Front matter, `tag`, placement in `_posts/`, `_playbooks/` or `_work/` |
 | | Validation, preview URL, index listing |
 
 Your prose is copied in exactly as written. Once the file is set up, the
@@ -50,7 +50,7 @@ original moves to `_inbox/done/`, so `_inbox/` only ever shows what is still
 waiting.
 
 Nothing in `_inbox/` can reach the built site. The folder is in the `exclude`
-list at `_config.yml:81`, so a dropped file cannot publish itself whatever front
+list at `_config.yml:105`, so a dropped file cannot publish itself whatever front
 matter it carries. And nothing is live until `git push`.
 
 ### An article
@@ -66,6 +66,25 @@ never edit the index page.
 
 Read time is computed from word count at build time. There is no `read_time`
 field to set.
+
+### A playbook
+
+Same shape as an article, in its own section. Drop it in `_inbox/` and say "new
+playbook". To do it by hand instead:
+
+1. Copy `_templates/playbook.md` to `_playbooks/YYYY-MM-DD-slug.md`.
+2. Use today's date or earlier. The slug becomes `/playbooks/slug/`. A future
+   date is worse than for an article: the page is not built, but `/playbooks/`
+   still lists it, linking to a 404. `validate.rb` blocks it.
+3. Fill in `title`, `description`, `tag`. The body goes below the closing `---`.
+
+A playbook in a series also sets `series` and `part`, and its title starts with
+the series name, e.g. "Classification Fine Tuning Series: Data Decisions".
+`/playbooks/` lists each series under its own heading, parts in order, and
+shows the title without the series prefix.
+
+A playbook that arrives as a complete HTML page keeps its own design: it goes
+in as `.html` with `layout: playbook`. See `_templates/playbook.md`.
 
 ### A project (case study)
 
@@ -108,8 +127,9 @@ You approve both when the file is created, but neither is locked to that moment.
 **The description** is the `description:` key in the file's own front matter:
 
 ```
-_posts/2026-08-18-your-slug.md    →  description: …
-_work/your-slug.md                →  description: …
+_posts/2026-08-18-your-slug.md      →  description: …
+_playbooks/2026-08-18-your-slug.md  →  description: …
+_work/your-slug.md                  →  description: …
 ```
 
 Change it whenever you like, before or after publishing. It has no effect on the
@@ -138,6 +158,7 @@ whenever you like. Edit the file, save, done.
 | What | Where |
 | --- | --- |
 | An article's text or title | `_posts/YYYY-MM-DD-slug.md` |
+| A playbook's text or title | `_playbooks/YYYY-MM-DD-slug.md` |
 | A case study's text or fields | `_work/slug.md` |
 | An experiment row | `_data/experiments.yml` |
 | A job row | `_data/experience.yml` |
@@ -149,9 +170,9 @@ indentation there is the most likely cause of a failed build.
 
 ## Deleting content
 
-For an article or case study, what to do depends on whether something replaces
-it. `validate.rb` fails if a previously published slug stops resolving, which is
-the guard against doing this by accident.
+For an article, playbook or case study, what to do depends on whether something
+replaces it. `validate.rb` fails if a previously published slug stops resolving,
+which is the guard against doing this by accident.
 
 **Something replaces it, or you are renaming.** Put the old path in the
 replacement's front matter, then delete the old file:
@@ -182,9 +203,8 @@ some is pulled from `_config.yml` because other pages use the same value.
 | Visible area | File and line |
 | --- | --- |
 | Your name, the big heading | `_config.yml:10` (`title`) |
-| Tagline under the name | `_config.yml:11` (`tagline`) |
-| First intro paragraph | `index.html:13-15` |
-| Second intro paragraph | `index.html:16-18` |
+| First intro paragraph | `index.html:12-14` |
+| Second intro paragraph | `index.html:15-17` |
 | "Now:" line | `_config.yml:35` (`now`) |
 | "Open to:" line | `_config.yml:36` (`open_to`) |
 | Email button | `_config.yml:23` (`email`) |
@@ -196,7 +216,7 @@ some is pulled from `_config.yml` because other pages use the same value.
 | Stack section | `_data/stack.yml` |
 
 The values in `_config.yml` are there because more than one page reads them.
-`tagline` also fills the homepage browser-tab title. `email` also appears in the
+`tagline` is not shown on the page; it only fills the homepage browser-tab title. `email` also appears in the
 contact band and at the foot of every case study. `resume_url` drives buttons on
 three pages, and leaving it empty hides all of them rather than shipping a dead
 link.
@@ -212,10 +232,11 @@ Everything in that table needs a server restart if you change it in
 | Contact band, on every page | `_includes/contact.html` |
 | Footer | `_includes/footer.html` |
 | Heading and intro on the articles page | `articles.html` |
+| Heading and intro on the playbooks page | `playbooks.html` |
 | Heading and intro on the work page | `work.html` |
 | Heading and intro on the experiments page | `experiments.html` |
 | Heading and intro on the experience page | `experience.html` |
-| Every article page at once | `_layouts/article.html` |
+| Every article and playbook page at once | `_layouts/article.html` |
 | Every case study at once | `_layouts/work.html` |
 | Browser tab titles | `_layouts/default.html:39-47` |
 | Colours, fonts, spacing | `css/modernist.css` |

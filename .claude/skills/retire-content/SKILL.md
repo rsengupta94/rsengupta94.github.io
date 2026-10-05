@@ -1,6 +1,6 @@
 ---
 name: retire-content
-description: Remove, rename, or unpublish an article or case study without breaking live URLs or search rankings. Use when the user says "delete this article", "remove that post", "rename this article", "change the slug", "unpublish this", or "take that down".
+description: Remove, rename, or unpublish an article, playbook or case study without breaking live URLs or search rankings. Use when the user says "delete this article", "remove that post", "rename this article", "change the slug", "unpublish this", or "take that down".
 ---
 
 # Retire or move published content
@@ -22,7 +22,7 @@ This changes everything. If the URL was never live, none of the SEO machinery
 matters and you can just delete the file.
 
 ```sh
-git log --all --diff-filter=A --name-only --format= -- _posts/ _work/ | sort -u
+git log --all --diff-filter=A --name-only --format= -- _posts/ _playbooks/ _work/ | sort -u
 grep '^url:' _config.yml
 ```
 

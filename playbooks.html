@@ -1,0 +1,55 @@
+---
+layout: default
+title: Post-Training Playbooks
+description: >-
+  I am publishing playbooks for post-training tasks to streamline what is
+  otherwise a disjointed effort across many sources.
+permalink: /playbooks/
+---
+<main id="main" class="wrap">
+  <section class="page-head">
+    <h1>Playbooks.</h1>
+    <p class="lede">Learning Post Training is a largely disjointed effort spread across research papers, articles, X posts, book chapters. I am publishing playbooks for various tasks to try and streamline some of it.</p>
+  </section>
+
+  {%- if page.coming_soon %}
+  {% include coming-soon.html %}
+  {%- else %}
+  {%- comment -%}
+    One block per series, parts in order under the series name. The row drops
+    the "<series>: " prefix from the title, since the heading above already says
+    it. Playbooks outside a series form a block with no heading, newest first.
+    group_by gives those an empty name.
+  {%- endcomment %}
+  {%- assign groups = site.playbooks | group_by: "series" %}
+  {%- for g in groups %}
+  {%- if g.name != "" %}
+  <h2 class="series-name">{{ g.name }}</h2>
+  {%- assign items = g.items | sort: "part" %}
+  {%- else %}
+  {%- assign items = g.items | sort: "date" | reverse %}
+  {%- endif %}
+  <div class="art-list">
+    {%- for p in items %}
+    {%- assign series_prefix = p.series | append: ": " %}
+    <a class="art-item" href="{{ p.url | relative_url }}">
+      <span class="art-date">{{ p.date | date: "%b %Y" }}</span>
+      <span class="art-main">
+        <span class="art-title">
+          {%- if p.series %}Part {{ p.part }} · {{ p.title | remove_first: series_prefix }}{% else %}{{ p.title }}{% endif -%}
+        </span>
+        <span class="art-summary">{{ p.description | strip_newlines }}</span>
+      </span>
+      <span class="art-side">
+        {%- if p.tag %}<span class="tag tag-accent">{{ p.tag }}</span>{% endif %}
+        {%- comment -%} strip_html first: a full-page playbook's content includes its own styles and script. {%- endcomment -%}
+        {%- assign read_minutes = p.content | strip_html | number_of_words | divided_by: 200 | at_least: 1 -%}
+        <span class="read-time">{{ read_minutes }} min</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+      </span>
+    </a>
+    {%- endfor %}
+  </div>
+  {%- endfor %}
+  {%- endif %}
+</main>

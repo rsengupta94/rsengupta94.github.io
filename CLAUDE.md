@@ -48,7 +48,8 @@ ruby scripts/validate.rb --strict # warnings count as errors too
 1. **Future dates never publish.** A post dated after today is skipped with no
    error. When stamping a date into a filename, always use today's date or
    earlier — never "when it was written" if that is in the future, and never a
-   planned publication date.
+   planned publication date. A future-dated playbook is worse: its page is not
+   built, but `/playbooks/` and `sitemap.xml` still list it, linking to a 404.
 2. **A published slug can never change.** The filename slug *is* the URL.
    Renaming breaks every existing link and the search ranking. `title:` is free
    to change; the filename is not. To remove or move published content, use the
@@ -60,10 +61,11 @@ ruby scripts/validate.rb --strict # warnings count as errors too
 
 ```
 _posts/YYYY-MM-DD-slug.md   articles      → /articles/slug/
+_playbooks/YYYY-MM-DD-slug.md  playbooks  → /playbooks/slug/
 _work/slug.md               case studies  → /work/slug/
 _data/*.yml                 list content: experiments, stack, experience, logos
 index.html                  About page prose
-articles.html work.html experiments.html experience.html    index pages
+articles.html playbooks.html work.html experiments.html experience.html    index pages
 _layouts/ _includes/        page structure, shared nav/contact/footer
 css/ js/ assets/            styles, theme toggle, logos
 scripts/validate.rb         pre-publish checks
@@ -79,6 +81,7 @@ When Rajarshi describes something to add or change, route it:
 | They say | Goes in |
 | --- | --- |
 | an article, post, write-up, field note | `_posts/YYYY-MM-DD-slug.md` |
+| a playbook, a how-to for a post-training task | `_playbooks/YYYY-MM-DD-slug.md` |
 | a project, case study, work I shipped | `_work/slug.md` |
 | an experiment, side project, repo | an entry in `_data/experiments.yml` |
 | a job, role, employer | an entry in `_data/experience.yml` |
@@ -120,7 +123,7 @@ replace, not Claude's to invent.
 | Skill | Use |
 | --- | --- |
 | `preview` | Start or reuse the local preview server |
-| `new-article` | Take in a finished article file: name, place, front matter, SEO |
+| `new-article` | Take in a finished article or playbook: section, name, place, front matter, SEO |
 | `new-project` | Same, for a work case study |
 | `seo-summary` | Draft and check `title` / `description` against researched practice |
 | `retire-content` | Remove or move published content without breaking URLs |
@@ -130,6 +133,11 @@ replace, not Claude's to invent.
 
 - **Read time is computed** from word count at build time. There is no
   `read_time` field; do not add one.
+- **Playbooks in a series** carry `series` and `part`, and the title starts
+  with `"<series>: "`. `/playbooks/` groups and orders by them and strips the
+  prefix in the row. Full-page HTML playbooks use `layout: playbook`, which
+  wraps them in the site shell; their CSS must be scoped to `.playbook` (rules
+  in `_templates/playbook.md`).
 - **Experiment numerals are computed** from list position in
   `_data/experiments.yml`. There is no `num:` field; entries can be reordered
   freely.

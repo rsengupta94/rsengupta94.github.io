@@ -1,0 +1,1557 @@
+---
+layout: playbook
+series: "Classification Fine Tuning Series"
+part: 1
+title: "Classification Fine Tuning Series: Data Decisions"
+description: >-
+  Twelve data decisions to make before fine-tuning a text classifier: input,
+  labels, shortcuts, cleaning, splits, length and imbalance.
+tag: "Fine-Tuning"
+---
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap">
+<style>
+/* Layout: a sticky rail lists the twelve decisions in order on the left; one reading column on the right holds an explorable section per decision. Phones get a jump menu instead of the rail. Highlighter yellow marks labels, the thing a human coder adds to data. */
+.playbook {
+  /* Core theme: the portfolio's palette (css/modernist.css). ink-2 and ink-3 are
+     its text colour mixed into the page at 85% and 68%. */
+  --paper: #f3f2f2;
+  --card: #eae9e9;
+  --ink: #201e1d;
+  --ink-2: #403e3d;
+  --ink-3: #646261;
+  --rule: color-mix(in srgb, #201e1d 40%, transparent);
+  --accent: #dd2b0f;
+  --accent-soft: #fff2ef;
+  --accent-on-soft: #dd2b0f;
+  --on-accent: #ffffff;
+  --hl: #ffe45c;
+  --mark: #ffe45c;
+  --mark-ink: #141821;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --on-s1: #ffffff;
+  --on-s2: #141821;
+  --good: #0e8a3e;
+  --bad: #c9372f;
+  --warn: #9a5a00;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Archivo", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --step--2: 0.75rem;
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.375rem;
+  --step-3: 1.75rem;
+  --step-4: clamp(1.875rem, 4.2vw, 2.5rem);
+  --radius: 0;
+  --bar-h: 58px;
+}
+
+body[data-pf-theme="dark"] .playbook {
+  --paper: #1c1a19; --card: #282525; --ink: #f3f2f2; --ink-2: #d3d2d1; --ink-3: #aeadad; --rule: color-mix(in srgb, #f3f2f2 38%, transparent);
+  --accent: #ec3013; --accent-soft: #402623; --accent-on-soft: #ff6a4d; --on-accent: #ffffff; --hl: #5f5212; --mark: #f2d54a; --mark-ink: #141821;
+  --s1: #3987e5; --s2: #d95926; --on-s1: #0e1014; --on-s2: #0e1014;
+  --good: #4cc27a; --bad: #f0736b; --warn: #e3a541;
+  color-scheme: dark;
+}
+
+/* Inside the site layout: undo the site's heading defaults so the page's own
+   rules below decide, as they did when it was a standalone page. */
+.playbook h1, .playbook h2, .playbook h3 { font-family: inherit; font-weight: bold; line-height: inherit; letter-spacing: normal; }
+
+.playbook * { box-sizing: border-box; }
+.playbook [hidden] { display: none !important; }
+.playbook .chart svg text, .playbook .chart svg line, .playbook .chart svg path { pointer-events: none; }
+
+.playbook {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.playbook a { color: var(--accent); text-underline-offset: 3px; }
+.playbook :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.playbook code, .playbook .mono { font-family: var(--font-mono); font-size: 0.9em; }
+.playbook h1, .playbook h2, .playbook h3 { text-wrap: balance; margin: 0; }
+.playbook p { margin: 0; }
+.playbook ol, .playbook ul { margin: 0; padding: 0; }
+.playbook b, .playbook strong { font-weight: 650; }
+
+/* ---------- Hero ---------- */
+.playbook .pb-hero { padding-block: 0 32px; }
+.playbook .series { font-family: var(--font-display); font-stretch: 112%; font-weight: 700; font-size: clamp(1rem, 3.2vw, 1.75rem); line-height: 1.1; color: var(--accent); }
+.playbook .pb-hero h1 {
+  font-family: var(--font-display); font-stretch: 118%; font-weight: 800;
+  /* Sized to keep "Part 1: Data Decisions" on one line: 56px on a laptop,
+     scaling down with the screen so most phones hold it too. */
+  font-size: clamp(1.5rem, 6.5vw, 3.5rem); line-height: 0.98; letter-spacing: -0.01em; margin-top: 14px;
+}
+.playbook .lead { font-size: var(--step-1); color: var(--ink-2); margin-top: 20px; }
+.playbook .map { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 36px; counter-reset: none; }
+.playbook .map li { min-width: 0; }
+.playbook .map a {
+  display: flex; flex-direction: column; gap: 6px; height: 100%; text-decoration: none; color: inherit;
+  padding: 14px 14px 16px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--card);
+}
+.playbook .map a:hover { border-color: var(--accent); }
+.playbook .map .g-letter { font-family: var(--font-display); font-stretch: 118%; font-weight: 800; font-size: var(--step-3); line-height: 1; color: var(--accent); }
+.playbook .map .g-name { font-weight: 650; line-height: 1.3; }
+.playbook .map .g-items { font-size: var(--step--1); color: var(--ink-2); line-height: 1.45; }
+.playbook .parts { margin-top: 18px; font-size: var(--step--1); color: var(--ink-2); }
+
+/* ---------- Glossary ---------- */
+.playbook .glossary { padding-block: 8px 40px; }
+.playbook .section-label { font-size: var(--step--2); font-weight: 650; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.playbook .gloss { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 28px; margin: 14px 0 0; }
+.playbook .gloss div { min-width: 0; border-top: 1px solid var(--rule); padding-top: 10px; }
+.playbook .gloss dt { font-weight: 650; }
+.playbook .gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--step--1); line-height: 1.5; }
+
+/* ---------- Sticky bar + tabs ---------- */
+.playbook .bar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--nav-h, 62px)); scroll-margin-top: var(--nav-h, 62px); z-index: 30; background: var(--paper); border-bottom: 1px solid var(--rule); }
+.playbook .bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--bar-h); }
+.playbook .tabs { display: flex; gap: 4px; }
+.playbook .tab {
+  font: inherit; font-weight: 600; font-size: var(--step--1); color: var(--ink-2); background: transparent;
+  border: 1px solid transparent; border-radius: 999px; padding: 7px 16px; cursor: pointer;
+}
+.playbook .tab:hover { color: var(--ink); }
+.playbook .tab[aria-selected="true"] { color: var(--ink); background: var(--card); border-color: var(--rule); }
+.playbook .jump { display: none; font: inherit; font-size: var(--step--1); color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 8px; max-width: 52vw; }
+
+/* ---------- Learn layout ---------- */
+.playbook .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; padding-block: 8px 72px; }
+.playbook .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--nav-h, 62px) + var(--bar-h) + 24px); align-self: start; max-height: calc(100vh - var(--nav-h, 62px) - var(--bar-h) - 48px); overflow: auto; padding-block: 24px; }
+.playbook .rail p { font-size: var(--step--2); font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin: 18px 0 6px; }
+.playbook .rail p:first-child { margin-top: 0; }
+.playbook .rail ol { list-style: none; }
+.playbook .rail a {
+  display: grid; grid-template-columns: 2.1em 1fr; gap: 4px; padding: 4px 8px; border-radius: 6px;
+  color: var(--ink-2); text-decoration: none; font-size: var(--step--1); line-height: 1.35;
+}
+.playbook .rail a span { font-family: var(--font-mono); color: var(--ink-3); font-size: 0.85em; padding-top: 1px; }
+.playbook .rail a:hover { color: var(--ink); background: var(--card); }
+.playbook .rail a.active { color: var(--ink); background: var(--card); box-shadow: inset 0 0 0 1px var(--rule); }
+.playbook .rail a.active span { color: var(--accent); }
+.playbook main { min-width: 0; max-width: 780px; }
+
+.playbook .group-head { display: flex; align-items: baseline; gap: 14px; padding-top: 48px; }
+.playbook .group-head:first-child { padding-top: 24px; }
+.playbook .group-head { scroll-margin-top: calc(var(--nav-h, 62px) + var(--bar-h) + 8px); }
+.playbook .group-head .g-letter { font-family: var(--font-display); font-stretch: 118%; font-weight: 800; font-size: var(--step-4); color: var(--accent); line-height: 1; }
+.playbook .group-head h2 { font-family: var(--font-display); font-stretch: 112%; font-weight: 700; font-size: var(--step-2); }
+
+.playbook .decision { padding-block: 40px 44px; border-bottom: 1px solid var(--rule); scroll-margin-top: calc(var(--nav-h, 62px) + var(--bar-h) + 16px); display: grid; gap: 22px; }
+.playbook .d-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.playbook .d-num { font-family: var(--font-mono); font-size: var(--step--1); color: var(--accent); font-weight: 600; }
+.playbook .d-group { font-size: var(--step--2); font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.playbook .short-tag { font-size: var(--step--2); font-weight: 650; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 999px; padding: 1px 9px; }
+.playbook .decision h2 { font-family: var(--font-display); font-stretch: 112%; font-weight: 760; font-size: var(--step-4); line-height: 1.04; margin-top: -10px; }
+.playbook .oneline { font-size: var(--step-2); line-height: 1.45; }
+.playbook .decision.short { gap: 14px; }
+.playbook .decision.short .oneline { font-size: var(--step-1); }
+
+.playbook .block { display: grid; gap: 12px; }
+.playbook .block-title { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+
+.playbook .fig { margin: 0; background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.playbook .fig-title { font-weight: 650; }
+.playbook .fig figcaption, .playbook .fig .caption { font-size: var(--step--1); color: var(--ink-2); line-height: 1.5; }
+.playbook .illus { font-family: var(--font-mono); font-size: var(--step--2); color: var(--ink-3); border: 1px solid var(--rule); border-radius: 4px; padding: 0 6px; margin-left: 6px; white-space: nowrap; }
+
+.playbook .rule { background: var(--accent-soft); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 8px; }
+.playbook .rule-tag { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-on-soft); }
+.playbook .rule ol, .playbook .rule ul { padding-left: 1.3em; display: grid; gap: 4px; }
+
+.playbook .example { font-size: var(--step--1); color: var(--ink-2); }
+.playbook .ex-tag { font-family: var(--font-mono); font-size: var(--step--2); color: var(--ink); background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 1px 6px; margin-right: 6px; }
+
+.playbook .opts { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .opts li { min-width: 0; border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--card); }
+.playbook .opts li b { display: block; }
+.playbook .opts li span { color: var(--ink-2); font-size: var(--step--1); }
+.playbook .opts li .default { color: var(--accent); }
+.playbook .default { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; color: var(--accent); margin-left: 6px; }
+
+.playbook .qs { list-style: none; counter-reset: q; display: grid; gap: 10px; }
+.playbook .qs li { counter-increment: q; display: grid; grid-template-columns: 1.9em 1fr; gap: 10px; }
+.playbook .qs li::before {
+  content: counter(q); font-family: var(--font-mono); font-size: var(--step--1); font-weight: 600; color: var(--accent);
+  width: 1.75em; height: 1.75em; border: 1px solid var(--accent); border-radius: 50%; display: grid; place-items: center; margin-top: 1px;
+}
+
+.playbook details.checks { border: 1px solid var(--rule); border-radius: 8px; background: var(--card); }
+.playbook details.checks summary { cursor: pointer; padding: 12px 16px; font-weight: 600; font-size: var(--step--1); list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+.playbook details.checks summary::-webkit-details-marker { display: none; }
+.playbook details.checks summary::after { content: "+"; font-family: var(--font-mono); color: var(--accent); }
+.playbook details.checks[open] summary::after { content: "−"; }
+.playbook details.checks ol { padding: 0 16px 16px 2.2em; display: grid; gap: 8px; font-size: var(--step--1); }
+
+.playbook .chip-mark { font-family: var(--font-mono); font-size: 0.92em; background: var(--mark); color: var(--mark-ink); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.playbook .pill { font-size: var(--step--2); font-weight: 650; border-radius: 999px; padding: 2px 10px; white-space: nowrap; border: 1px solid; }
+.playbook .pill.in { color: var(--good); border-color: var(--good); }
+.playbook .pill.out { color: var(--bad); border-color: var(--bad); }
+.playbook .yes { color: var(--good); font-weight: 700; margin-right: 4px; }
+.playbook .no { color: var(--bad); font-weight: 700; margin-right: 4px; }
+
+.playbook .tbl-wrap { overflow-x: auto; }
+.playbook table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+.playbook th, .playbook td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+.playbook thead th { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.playbook tbody th { font-weight: 650; }
+.playbook tbody tr:last-child th, .playbook tbody tr:last-child td { border-bottom: 0; }
+
+/* Flow diagram (input → model → label) */
+.playbook .flow { display: grid; grid-template-columns: minmax(0, 2.4fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.playbook .flow-box { border: 1px solid var(--rule); border-radius: 8px; padding: 12px; display: grid; gap: 6px; min-width: 0; background: var(--paper); }
+.playbook .flow-box code { font-size: var(--step--1); line-height: 1.45; overflow-wrap: anywhere; }
+.playbook .flow-model { text-align: center; }
+.playbook .flow-tag { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.playbook .flow-arrow { display: grid; justify-items: center; color: var(--ink-3); font-size: var(--step--2); }
+.playbook .flow-arrow::after { content: "→"; font-size: 1.4rem; line-height: 1; color: var(--ink-2); }
+.playbook .flow-out .chip-mark { justify-self: start; }
+
+/* Task type switcher */
+.playbook .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; justify-self: start; }
+.playbook .seg button { font: inherit; font-size: var(--step--1); font-weight: 600; color: var(--ink-2); background: transparent; border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.playbook .seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--rule); }
+.playbook .tt-def { font-weight: 650; }
+.playbook .tt-input { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.playbook .bars { display: grid; gap: 10px; }
+.playbook .bar-row { display: grid; grid-template-columns: minmax(7.5em, 9em) minmax(0, 1fr) 3.4em 3.6em; align-items: center; gap: 10px; font-size: var(--step--1); }
+.playbook .bar-name { overflow-wrap: anywhere; }
+.playbook .bar-track { position: relative; height: 14px; background: var(--paper); border-radius: 4px; }
+.playbook .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--s1); border-radius: 0 4px 4px 0; transition: width 300ms ease; }
+.playbook .bar-fill.off { opacity: 0.35; }
+.playbook .bar-cut { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--accent); }
+.playbook .bar-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.playbook .bar-verdict { font-size: var(--step--2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.playbook .bar-verdict.y { color: var(--good); }
+.playbook .bar-verdict.n { color: var(--ink-3); }
+.playbook .bars.has-cut { padding-top: 20px; }
+.playbook .cut-tag { position: absolute; bottom: calc(100% + 7px); transform: translateX(-50%); font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.playbook .tt-result { font-weight: 650; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* Noise check */
+.playbook .readout { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.playbook .big { font-family: var(--font-display); font-stretch: 112%; font-weight: 800; font-size: 3rem; line-height: 1; }
+.playbook .big-unit { color: var(--ink-2); font-size: var(--step--1); }
+.playbook .control { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; font-size: var(--step--1); }
+.playbook .control output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; font-weight: 600; }
+.playbook input[type="range"] { width: 100%; accent-color: var(--accent); }
+.playbook .chart { position: relative; min-width: 0; }
+.playbook .chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+.playbook .grid { stroke: var(--rule); stroke-width: 1; }
+.playbook .axis { stroke: var(--ink-3); stroke-width: 1; opacity: 0.7; }
+.playbook .tick { fill: var(--ink-3); font: 500 11px var(--font-mono); }
+.playbook .axis-title { fill: var(--ink-2); font: 500 11.5px var(--font-body); }
+.playbook .ref { stroke: var(--ink-3); stroke-width: 1; }
+.playbook .ref-label { fill: var(--ink-2); font: 600 11.5px var(--font-body); }
+.playbook .line-s1 { fill: none; stroke: var(--s1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.playbook .dot-s1 { fill: var(--s1); stroke: var(--card); stroke-width: 2; }
+.playbook .dot-s2 { fill: var(--s2); stroke: var(--card); stroke-width: 2; }
+.playbook .drop { stroke: var(--s1); stroke-width: 1; opacity: 0.55; }
+.playbook .hair { stroke: var(--ink-3); stroke-width: 1; }
+.playbook .yes-zone { fill: var(--accent-soft); }
+.playbook .cut-line { stroke: var(--accent); stroke-width: 2; }
+.playbook .cut-label { fill: var(--accent); font: 600 12px var(--font-mono); }
+.playbook .zone-label { fill: var(--ink-2); font: 500 11.5px var(--font-body); }
+.playbook .dimmed { opacity: 0.32; }
+.playbook .hit { fill: transparent; cursor: pointer; }
+.playbook .hit:focus { outline: none; }
+.playbook .hit:focus-visible { stroke: var(--accent); stroke-width: 2; }
+.playbook .overlay { fill: transparent; cursor: crosshair; }
+.playbook .tip {
+  position: absolute; pointer-events: none; background: var(--ink); color: var(--card); border-radius: 6px; padding: 6px 10px;
+  font-size: var(--step--2); line-height: 1.4; transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; z-index: 5; display: grid;
+}
+.playbook .tip strong { font-size: 0.95rem; font-family: var(--font-mono); }
+.playbook .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--step--1); color: var(--ink-2); }
+.playbook .legend span { display: inline-flex; align-items: center; gap: 7px; }
+.playbook .sw { width: 10px; height: 10px; border-radius: 50%; background: var(--s1); display: inline-block; }
+.playbook .sw.s2 { background: var(--s2); }
+.playbook .sw.sq { border-radius: 2px; }
+.playbook .small-table { font-size: var(--step--2); }
+.playbook .small-table td, .playbook .small-table th { padding: 5px 10px; }
+.playbook .small-table td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Decision tree */
+.playbook .tree, .playbook .tree ul { list-style: none; }
+.playbook .tree { display: grid; gap: 8px; }
+.playbook .tree ul { margin-left: 18px; padding-left: 18px; border-left: 2px solid var(--rule); display: grid; gap: 8px; margin-top: 8px; }
+.playbook .tree li { position: relative; }
+.playbook .tree ul > li::before { content: ""; position: absolute; left: -18px; top: 1.05em; width: 14px; border-top: 2px solid var(--rule); }
+.playbook .node { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: baseline; border: 1px solid var(--rule); border-radius: 8px; padding: 7px 12px; background: var(--paper); font-size: var(--step--1); }
+.playbook .node.end { background: var(--card); font-weight: 650; }
+.playbook .branch { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; color: var(--accent); }
+
+/* Shortcut paths */
+.playbook .paths { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px 14px; align-items: center; }
+.playbook .path { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; background: var(--paper); min-width: 0; }
+.playbook .path code { font-size: var(--step--1); overflow-wrap: anywhere; }
+.playbook .path-tag { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.playbook .path.real .path-tag { color: var(--good); }
+.playbook .path.clue .path-tag { color: var(--warn); }
+.playbook .path-arrow { color: var(--ink-2); font-size: 1.3rem; }
+.playbook .paths .target { grid-column: 3; grid-row: 1 / span 2; }
+.playbook .paths .a1 { grid-column: 2; grid-row: 1; }
+.playbook .paths .a2 { grid-column: 2; grid-row: 2; }
+.playbook .outcomes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .outcome { border-radius: 8px; padding: 12px 14px; border: 1px solid var(--rule); display: grid; gap: 4px; font-size: var(--step--1); }
+.playbook .outcome b { display: flex; gap: 6px; align-items: center; }
+.playbook .ic { font-weight: 800; font-family: var(--font-mono); }
+.playbook .ic.good { color: var(--good); }
+.playbook .ic.bad { color: var(--bad); }
+.playbook .ic.warn { color: var(--warn); }
+.playbook .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .compare div { border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--card); display: grid; gap: 4px; font-size: var(--step--1); }
+.playbook .words { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.playbook .words span { font-family: var(--font-mono); font-size: var(--step--2); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 7px; }
+.playbook .words span.sus { border-color: var(--warn); color: var(--warn); font-weight: 600; }
+
+/* Triage quiz */
+.playbook .triage { list-style: none; display: grid; gap: 10px; }
+.playbook .triage li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+.playbook .row-text { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; min-width: 0; font-size: var(--step--1); }
+.playbook .row-text code { overflow-wrap: anywhere; }
+.playbook .empty { color: var(--ink-3); font-style: italic; }
+.playbook .choices { display: flex; gap: 4px; }
+.playbook .choices button { font: inherit; font-size: var(--step--2); font-weight: 650; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--card); color: var(--ink); cursor: pointer; }
+.playbook .choices button:hover { border-color: var(--accent); }
+.playbook .choices button[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.playbook .verdict { grid-column: 1 / -1; font-size: var(--step--1); display: flex; gap: 8px; align-items: baseline; }
+.playbook .text-btn { font: inherit; font-size: var(--step--1); font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; justify-self: start; }
+
+/* Duplicates */
+.playbook .kinds { display: grid; gap: 10px; }
+.playbook .kind { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 4px 14px; align-items: start; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.playbook .kind:last-child { border-bottom: 0; padding-bottom: 0; }
+.playbook .kind b { font-size: var(--step--1); }
+.playbook .kind .rows { display: grid; gap: 4px; min-width: 0; }
+.playbook .kind code { font-size: var(--step--2); overflow-wrap: anywhere; }
+.playbook .diff { background: var(--hl); padding-inline: 2px; }
+.playbook .leak { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.playbook .set { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; min-width: 0; }
+.playbook .set-name { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 8px 12px; background: var(--paper); border-bottom: 1px solid var(--rule); }
+.playbook .set-row { padding: 6px 12px; font-family: var(--font-mono); font-size: var(--step--2); color: var(--ink-3); border-bottom: 1px solid var(--rule); overflow-wrap: anywhere; }
+.playbook .set-row:last-child { border-bottom: 0; }
+.playbook .set-row.twin { color: var(--ink); background: var(--accent-soft); font-weight: 600; }
+.playbook .leak-arrow { display: grid; justify-items: center; gap: 2px; font-size: var(--step--2); color: var(--accent); font-weight: 650; text-align: center; }
+.playbook .leak-arrow::before { content: "⇄"; font-size: 1.5rem; line-height: 1; }
+.playbook .steps { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: s; }
+.playbook .steps li { counter-increment: s; display: flex; gap: 8px; align-items: center; border: 1px solid var(--rule); border-radius: 999px; padding: 6px 14px 6px 6px; background: var(--card); font-size: var(--step--1); }
+.playbook .steps li::before { content: counter(s); width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; }
+
+/* Splits */
+.playbook .splitbar { display: flex; gap: 2px; height: 46px; border-radius: 8px; overflow: hidden; }
+.playbook .splitbar div { display: grid; align-content: center; padding-inline: 10px; font-size: var(--step--2); font-weight: 650; min-width: 0; overflow: hidden; white-space: nowrap; }
+.playbook .splitbar .tr { flex: 70; background: var(--s1); color: var(--on-s1); }
+.playbook .splitbar .va { flex: 10; background: var(--mark); color: var(--mark-ink); }
+.playbook .splitbar .te { flex: 20; background: var(--ink); color: var(--card); }
+.playbook .split-legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; font-size: var(--step--1); }
+.playbook .split-legend div { display: grid; gap: 2px; min-width: 0; }
+.playbook .split-legend b { display: flex; align-items: center; gap: 7px; }
+.playbook .sim-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.playbook .bins { display: grid; grid-template-columns: 2.3fr 1fr 1.4fr; gap: 10px; }
+.playbook .bin { border: 1px solid var(--rule); border-radius: 8px; padding: 10px; display: grid; gap: 8px; align-content: start; min-width: 0; background: var(--paper); }
+.playbook .bin-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; font-size: var(--step--2); }
+.playbook .bin-head b { font-size: var(--step--1); }
+.playbook .bin-head span { color: var(--ink-2); font-family: var(--font-mono); }
+.playbook .toks { display: flex; flex-wrap: wrap; gap: 4px; min-height: 26px; }
+.playbook .tok { width: 30px; height: 22px; border-radius: 4px; display: grid; place-items: center; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; background: var(--s1); color: var(--on-s1); will-change: transform; }
+.playbook .tok.rare { background: var(--s2); color: var(--on-s2); }
+.playbook .sim-note { font-size: var(--step--1); display: flex; gap: 8px; align-items: baseline; }
+
+/* Truncation */
+.playbook .trunc { font-size: var(--step--1); line-height: 1.9; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
+.playbook .trunc .w { transition: opacity 150ms ease; }
+.playbook .trunc .w.key { background: var(--hl); }
+.playbook .trunc .w.cut { opacity: 0.28; text-decoration: line-through; text-decoration-color: var(--ink-3); }
+.playbook .scissor { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 4px; padding: 1px 6px; margin-inline: 4px; white-space: nowrap; }
+.playbook .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .two div { border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--card); font-size: var(--step--1); display: grid; gap: 4px; }
+
+/* Imbalance */
+.playbook .units { display: flex; flex-wrap: wrap; gap: 3px; max-width: 520px; }
+.playbook .u { width: 15px; height: 15px; border-radius: 3px; background: var(--s1); }
+.playbook .u.rare { background: var(--s2); }
+.playbook .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.playbook .tile { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; background: var(--paper); }
+.playbook .tile .t-label { font-size: var(--step--2); color: var(--ink-2); display: flex; gap: 6px; align-items: center; font-weight: 600; }
+.playbook .tile .t-val { font-family: var(--font-display); font-stretch: 112%; font-weight: 800; font-size: 1.75rem; line-height: 1.1; }
+
+/* Rules + cheat sheet */
+.playbook .rules-list { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .rules-list li { display: grid; grid-template-columns: 1.4em 1fr; gap: 8px; padding: 12px 14px; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; font-size: var(--step--1); min-width: 0; }
+.playbook .rules-list li::before { content: "✓"; color: var(--good); font-weight: 800; }
+.playbook .cheat { padding-block: 40px 72px; display: grid; gap: 20px; }
+.playbook .cheat h2 { font-family: var(--font-display); font-stretch: 112%; font-weight: 760; font-size: var(--step-4); }
+.playbook .matrix-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); overflow-x: auto; }
+.playbook .matrix { min-width: 900px; }
+.playbook .matrix td, .playbook .matrix th { padding: 12px 14px; }
+.playbook .matrix .grp td { background: var(--paper); font-weight: 700; font-size: var(--step--2); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.playbook .matrix .num { font-family: var(--font-mono); color: var(--accent); font-weight: 600; white-space: nowrap; }
+.playbook .matrix b.def { color: var(--accent); }
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 960px) {
+  .playbook .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .playbook .rail { display: none; }
+  .playbook .jump { display: block; }
+  .playbook .map { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .playbook .map li:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .playbook .gloss, .playbook .opts, .playbook .outcomes, .playbook .compare, .playbook .two, .playbook .rules-list, .playbook .split-legend { grid-template-columns: minmax(0, 1fr); }
+  .playbook .map { grid-template-columns: minmax(0, 1fr); }
+  .playbook .flow { grid-template-columns: minmax(0, 1fr); }
+  .playbook .flow-arrow::after { content: "↓"; }
+  .playbook .paths { grid-template-columns: minmax(0, 1fr); }
+  .playbook .paths .target, .playbook .paths .a1, .playbook .paths .a2 { grid-column: auto; grid-row: auto; }
+  .playbook .paths .a2 { display: none; }
+  .playbook .paths .a1::after { content: " ↓"; }
+  .playbook .leak { grid-template-columns: minmax(0, 1fr); }
+  .playbook .bins { grid-template-columns: minmax(0, 1fr); }
+  .playbook .triage li { grid-template-columns: minmax(0, 1fr); }
+  .playbook .kind { grid-template-columns: minmax(0, 1fr); }
+  .playbook .bar-row { grid-template-columns: minmax(6.5em, 7.5em) minmax(0, 1fr) 3em 3.2em; gap: 8px; }
+  .playbook .tiles { grid-template-columns: minmax(0, 1fr); }
+  .playbook .splitbar div { font-size: 10.5px; padding-inline: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .playbook *, .playbook *::before, .playbook *::after { transition: none !important; animation: none !important; }
+}
+
+/* Portfolio theme: square corners on cards, boxes and controls, as on the rest
+   of the site. Data marks inside figures (tokens, swatches, bars, label chips)
+   and the round number markers keep their shape. */
+.playbook .tab, .playbook .jump, .playbook .rail a, .playbook .short-tag, .playbook .illus, .playbook .opts li, .playbook details.checks, .playbook .pill, .playbook .flow-box, .playbook .seg, .playbook .seg button, .playbook .tip, .playbook .node, .playbook .path, .playbook .outcome, .playbook .compare div, .playbook .words span, .playbook .triage li, .playbook .choices button, .playbook .set, .playbook .steps li, .playbook .bin, .playbook .trunc, .playbook .two div, .playbook .tile, .playbook .rules-list li, .playbook :focus-visible { border-radius: 0; }
+</style>
+
+<header class="pb-hero wrap">
+  <p class="series">Classification Fine Tuning Series</p>
+  <h1>Part 1: Data Decisions</h1>
+  <p class="lead">Before you train a model to sort text into labels, you must make twelve decisions about your data. This page explains each decision in plain words. Make them in order, because an early decision can change a later one.</p>
+  <ol class="map" aria-label="The five groups of decisions, in order">
+    <li><a href="#g-a" data-nav><span class="g-letter">A</span><span class="g-name">What is the task?</span><span class="g-items">1 Input · 2 Target and task type · 3 Label set</span></a></li>
+    <li><a href="#g-b" data-nav><span class="g-letter">B</span><span class="g-name">Can you trust it?</span><span class="g-items">4 Label quality · 5 Shortcuts · 6 Match to real use</span></a></li>
+    <li><a href="#g-c" data-nav><span class="g-letter">C</span><span class="g-name">Clean</span><span class="g-items">7 Rows to drop · 8 Duplicates</span></a></li>
+    <li><a href="#g-d" data-nav><span class="g-letter">D</span><span class="g-name">Split</span><span class="g-items">9 Test set · 10 Validation set</span></a></li>
+    <li><a href="#g-e" data-nav><span class="g-letter">E</span><span class="g-name">Shape for training</span><span class="g-items">11 Length · 12 Imbalance</span></a></li>
+  </ol>
+  <p class="parts">Each section has the same parts: the idea in one line, a picture, the options, and the questions that decide. Some sections also list checks to run.</p>
+</header>
+
+<section class="glossary wrap" aria-labelledby="gloss-t">
+  <p class="section-label" id="gloss-t">Words on this page</p>
+  <dl class="gloss">
+    <div><dt>Example</dt><dd>One row of data. It has an input and a label.</dd></div>
+    <div><dt>Input</dt><dd>The text that the model reads.</dd></div>
+    <div><dt>Label</dt><dd>The answer that the model must give. A person added it to the data.</dd></div>
+    <div><dt>Training set</dt><dd>The examples that the model learns from.</dd></div>
+    <div><dt>Validation set</dt><dd>The practice exam. You tune your choices on it.</dd></div>
+    <div><dt>Test set</dt><dd>The final exam. You use it one time, at the end.</dd></div>
+    <div><dt>Token</dt><dd>A piece of a word. One token is about ¾ of a word.</dd></div>
+    <div><dt>Confidence</dt><dd>A number from 0 to 1 that the model gives for a label.</dd></div>
+    <div><dt>Cutoff</dt><dd>The confidence above which a label counts as “yes”.</dd></div>
+  </dl>
+</section>
+
+<div class="bar" id="views">
+  <div class="wrap">
+    <div class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-learn" data-view="learn" aria-controls="view-learn" aria-selected="true">Learn</button>
+      <button class="tab" role="tab" id="tab-cheat" data-view="cheat" aria-controls="view-cheat" aria-selected="false">Cheat sheet</button>
+    </div>
+    <select class="jump" id="jump" aria-label="Jump to a decision">
+      <option value="d1">1 · Input</option>
+      <option value="d2">2 · Target and task type</option>
+      <option value="d3">3 · Label set</option>
+      <option value="d4">4 · Label quality</option>
+      <option value="d5">5 · Shortcuts</option>
+      <option value="d6">6 · Match to real use</option>
+      <option value="d7">7 · Rows to drop</option>
+      <option value="d8">8 · Duplicates</option>
+      <option value="d9">9–10 · Test and validation sets</option>
+      <option value="d11">11 · Length</option>
+      <option value="d12">12 · Imbalance</option>
+      <option value="rules">Rules for every dataset</option>
+    </select>
+  </div>
+</div>
+
+<div id="view-learn" role="tabpanel" aria-labelledby="tab-learn">
+<div class="wrap layout">
+  <nav class="rail" aria-label="Decisions">
+    <p>A · What is the task?</p>
+    <ol>
+      <li><a href="#d1" data-nav><span>01</span>Input</a></li>
+      <li><a href="#d2" data-nav><span>02</span>Target and task type</a></li>
+      <li><a href="#d3" data-nav><span>03</span>Label set</a></li>
+    </ol>
+    <p>B · Can you trust it?</p>
+    <ol>
+      <li><a href="#d4" data-nav><span>04</span>Label quality</a></li>
+      <li><a href="#d5" data-nav><span>05</span>Shortcuts</a></li>
+      <li><a href="#d6" data-nav><span>06</span>Match to real use</a></li>
+    </ol>
+    <p>C · Clean</p>
+    <ol>
+      <li><a href="#d7" data-nav><span>07</span>Rows to drop</a></li>
+      <li><a href="#d8" data-nav><span>08</span>Duplicates</a></li>
+    </ol>
+    <p>D · Split</p>
+    <ol>
+      <li><a href="#d9" data-nav><span>09</span>Test and validation sets</a></li>
+    </ol>
+    <p>E · Shape for training</p>
+    <ol>
+      <li><a href="#d11" data-nav><span>11</span>Length</a></li>
+      <li><a href="#d12" data-nav><span>12</span>Imbalance</a></li>
+    </ol>
+    <p>Always</p>
+    <ol>
+      <li><a href="#rules" data-nav><span>✓</span>Rules for every dataset</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <!-- ============ A ============ -->
+    <div class="group-head" id="g-a"><span class="g-letter">A</span><h2>What is the task?</h2></div>
+
+    <section class="decision" id="d1" aria-labelledby="d1-t">
+      <div class="d-head"><span class="d-num">01</span><span class="d-group">What is the task?</span></div>
+      <h2 id="d1-t">Input</h2>
+      <p class="oneline">The input is what the model reads. The label is the answer that the model must give.</p>
+      <figure class="fig">
+        <div class="flow" role="img" aria-label="An input text goes into the model. The model gives the label blood.">
+          <div class="flow-box"><span class="flow-tag">Input</span><code>Influence of anaemia on clot structure<br>Thrombosis is a leading cause of…</code></div>
+          <div class="flow-arrow" aria-hidden="true">reads</div>
+          <div class="flow-box flow-model"><span class="flow-tag">Model</span><strong>Classifier</strong></div>
+          <div class="flow-arrow" aria-hidden="true">gives</div>
+          <div class="flow-box flow-out"><span class="flow-tag">Label</span><span class="chip-mark">blood</span></div>
+        </div>
+        <figcaption>Each row in the data is one example: an input and its correct label. A person added the label.</figcaption>
+      </figure>
+      <div class="rule">
+        <p class="rule-tag">Rule</p>
+        <p>A column goes into the input only if both statements are true:</p>
+        <ol>
+          <li><b>It is always there</b> when the model is used.</li>
+          <li><b>It does not give away the answer.</b> For example, a field that a person fills in at the same time as the label.</li>
+        </ol>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Example: test each column of a research-grant dataset</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th scope="col">Column</th><th scope="col">Always there?</th><th scope="col">Does not give away the answer?</th><th scope="col">Result</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Title</th><td><span class="yes" aria-label="yes">✓</span>Every grant has one.</td><td><span class="yes" aria-label="yes">✓</span>The applicant writes it.</td><td><span class="pill in">Input</span></td></tr>
+              <tr><th scope="row">Abstract</th><td><span class="yes" aria-label="yes">✓</span>Every grant has one.</td><td><span class="yes" aria-label="yes">✓</span>The applicant writes it.</td><td><span class="pill in">Input</span></td></tr>
+              <tr><th scope="row">Lay summary</th><td><span class="no" aria-label="no">✕</span>Three in four grants do not have one.</td><td><span class="yes" aria-label="yes">✓</span>The applicant writes it.</td><td><span class="pill out">Not input</span></td></tr>
+              <tr><th scope="row">Research activity codes</th><td><span class="no" aria-label="no">✕</span>A new grant does not have them yet.</td><td><span class="no" aria-label="no">✕</span>The coder adds them at the same time as the label.</td><td><span class="pill out">Not input</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>The health-category column is the label, so you do not test it. Result: the input is the title and the abstract, joined into one text.</figcaption>
+      </figure>
+    </section>
+
+    <section class="decision" id="d2" aria-labelledby="d2-t">
+      <div class="d-head"><span class="d-num">02</span><span class="d-group">What is the task?</span></div>
+      <h2 id="d2-t">Target and task type</h2>
+      <p class="oneline">The target is the column that holds the label. The task type tells how many labels one example can have.</p>
+      <figure class="fig" aria-labelledby="tt-def">
+        <div class="seg" role="group" aria-label="Task type">
+          <button type="button" data-tt="binary" aria-pressed="false">Binary</button>
+          <button type="button" data-tt="multiclass" aria-pressed="false">Multi-class</button>
+          <button type="button" data-tt="multilabel" aria-pressed="true">Multi-label</button>
+        </div>
+        <p class="tt-def" id="tt-def">Multi-label: each example can have any number of labels.</p>
+        <p class="tt-input"><span class="flow-tag">Input</span><code id="tt-input">“Memory and mood in older adults”</code></p>
+        <div class="bars" id="tt-bars" aria-live="polite"></div>
+        <p class="tt-result" id="tt-result"></p>
+        <figcaption id="tt-how">The model gives each label its own confidence. Each label above the cutoff is a “yes”, so many labels can be “yes”.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <p>Count the labels on each example.</p>
+        <ol class="qs">
+          <li><span><b>Always exactly one label:</b> binary if the list has two labels. Multi-class if the list has more.</span></li>
+          <li><span><b>Sometimes more than one label:</b> multi-label.</span></li>
+        </ol>
+      </div>
+      <div class="rule">
+        <p class="rule-tag">Rule</p>
+        <p>Keep the label list fixed. Use one spelling for each label. If not, “Cancer” and “cancer ” become two different labels.</p>
+      </div>
+      <p class="example"><span class="ex-tag">Example</span>In the research-grant dataset, the target is the health-category column. It has 21 labels. About 20% of grants have more than one label, so the task is multi-label.</p>
+    </section>
+
+    <section class="decision" id="d3" aria-labelledby="d3-t">
+      <div class="d-head"><span class="d-num">03</span><span class="d-group">What is the task?</span></div>
+      <h2 id="d3-t">Label set</h2>
+      <p class="oneline">Make sure that each label has enough examples. A rare label is hard to learn and hard to measure.</p>
+      <div class="two">
+        <div><b>Hard to learn</b><span>The model learns a label from its training examples. With few examples, it learns the label badly.</span></div>
+        <div><b>Hard to measure</b><span>You measure a label on its test examples. With few examples, one mistake changes the score a lot.</span></div>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Noise check: how much does one mistake change a label's score?</p>
+        <div class="readout">
+          <span class="big" id="noise-big">33</span>
+          <span class="big-unit">points per mistake</span>
+        </div>
+        <p id="noise-text" aria-live="polite"></p>
+        <div class="control">
+          <label for="noise-n">Test examples for this label</label>
+          <input type="range" id="noise-n" min="1" max="100" step="1" value="3">
+          <output id="noise-n-out" for="noise-n">3</output>
+        </div>
+        <div class="chart" id="noise-chart"></div>
+        <figcaption>Formula: one mistake changes the score by 100 ÷ n points, where n is the number of test examples for the label. Select a point on the chart to move the slider.</figcaption>
+        <details class="checks">
+          <summary>Show the values as a table</summary>
+          <div class="tbl-wrap"><table class="small-table">
+            <thead><tr><th scope="col">Test examples (n)</th><th scope="col">Points per mistake</th></tr></thead>
+            <tbody><tr><td>1</td><td>100</td></tr><tr><td>3</td><td>33</td></tr><tr><td>5</td><td>20</td></tr><tr><td>10</td><td>10</td></tr><tr><td>20</td><td>5</td></tr><tr><td>50</td><td>2</td></tr><tr><td>100</td><td>1</td></tr></tbody>
+          </table></div>
+        </details>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>Keep all <span class="default">DEFAULT</span></b><span>Report the score of each rare label. Make no claims about it.</span></li>
+          <li><b>Merge</b><span>Join two labels that mean almost the same thing.</span></li>
+          <li><b>Drop</b><span>Remove the label. The model can then never give it.</span></li>
+          <li><b>“Other”</b><span>Put all rare labels into one bucket.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <p>Ask these questions for each rare label:</p>
+        <ol class="qs">
+          <li><span><b>User need.</b> Do the users need this label?</span></li>
+          <li><span><b>Cost of a miss.</b> Is the label important, like a rare disease or fraud? Then keep it, however rare it is.</span></li>
+          <li><span><b>Freedom to change.</b> Must you keep the exact list? The labelling system, its license or another system can require it.</span></li>
+          <li><span><b>Overlap.</b> Does the label mean almost the same thing as another label?</span></li>
+        </ol>
+        <figure class="fig">
+          <ul class="tree" aria-label="Decision tree for a rare label">
+            <li><span class="node">Is the answer “yes” to question 1, 2 or 3?</span>
+              <ul>
+                <li><span class="branch">YES</span> <span class="node end">Keep it. Make no claims about its score.</span></li>
+                <li><span class="branch">NO</span> <span class="node">Does it overlap another label (question 4)?</span>
+                  <ul>
+                    <li><span class="branch">YES</span> <span class="node end">Merge it.</span></li>
+                    <li><span class="branch">NO</span> <span class="node end">Drop it, or move it to “other”.</span></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </figure>
+      </div>
+      <details class="checks">
+        <summary>Checks to run</summary>
+        <ol>
+          <li><b>Count per label.</b> Count the examples for each label in the training, validation and test sets. Sort from the rarest. This shows which labels are at risk.</li>
+          <li><b>Noise check.</b> For each rare label, calculate 100 ÷ n. Compare the result with the size of difference that you want to claim.</li>
+        </ol>
+      </details>
+    </section>
+
+    <!-- ============ B ============ -->
+    <div class="group-head" id="g-b"><span class="g-letter">B</span><h2>Can you trust it?</h2></div>
+
+    <section class="decision short" id="d4" aria-labelledby="d4-t">
+      <div class="d-head"><span class="d-num">04</span><span class="d-group">Can you trust it?</span><span class="short-tag">Short note</span></div>
+      <h2 id="d4-t">Label quality</h2>
+      <p class="oneline">People made the labels, and people make mistakes. The model learns the mistakes too.</p>
+      <p>Find out who made the labels, under which rules, and how consistent they are. Some “model errors” are really label errors. The default is to accept the labels. Fix clear errors in the training set only.</p>
+    </section>
+
+    <section class="decision" id="d5" aria-labelledby="d5-t">
+      <div class="d-head"><span class="d-num">05</span><span class="d-group">Can you trust it?</span></div>
+      <h2 id="d5-t">Shortcuts</h2>
+      <p class="oneline">A shortcut is a clue that goes with a label but is not the reason for it. The model can learn the clue instead of the reason.</p>
+      <figure class="fig">
+        <div class="paths" role="img" aria-label="Two paths lead to the label cancer. The real reason is that the grant studies tumour growth. The shortcut is that the text names Cancer Research UK.">
+          <div class="path real"><span class="path-tag">Real reason</span><code>“…this grant studies tumour growth…”</code></div>
+          <div class="path clue"><span class="path-tag">Shortcut</span><code>“…Cancer Research UK…”</code></div>
+          <span class="path-arrow a1" aria-hidden="true">→</span>
+          <span class="path-arrow a2" aria-hidden="true">→</span>
+          <span class="chip-mark target">cancer</span>
+        </div>
+        <div class="outcomes">
+          <div class="outcome"><b><span class="ic good">✓</span>In the test set</b><span>The clue is there too, so the score looks good.</span></div>
+          <div class="outcome"><b><span class="ic bad">✕</span>In real use</b><span>The clue is missing, so the model fails.</span></div>
+        </div>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">The key question</h3>
+        <p>Is the clue a real signal, or something left over from how people collected the data?</p>
+        <div class="compare">
+          <div><b><span class="ic good">✓</span> Real signal: keep it</b><span>The clue appears in real inputs, in the same way.</span></div>
+          <div><b><span class="ic bad">✕</span> Leftover: remove it</b><span>A template, an email signature, or a label word that got into the text.</span></div>
+        </div>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>Leave it in <span class="default">DEFAULT</span></b><span>Train on the text as it is.</span></li>
+          <li><b>Mask the clue</b><span>Replace the clue with a neutral placeholder.</span></li>
+          <li><b>Drop the rows</b><span>Remove the rows that contain the clue.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span><b>Origin.</b> Did the clue come from the real world, or from how people collected the data?</span></li>
+          <li><span><b>Real use.</b> Will the clue appear in real inputs, in the same way?</span></li>
+          <li><span><b>Reliance.</b> Does the model still do well on examples without the clue?</span></li>
+        </ol>
+      </div>
+      <details class="checks">
+        <summary>Checks to run</summary>
+        <ol>
+          <li><b>Top words per label from a keyword model.</b> A keyword model looks only at which words appear. It gives each word a weight for each label. Print the words with the highest weights for each label, and read them. Medical words are real reasons. Names, places and template phrases are possible shortcuts.
+            <span class="words" aria-label="Illustration of top words for the label cancer"><span>tumour</span><span>oncology</span><span>chemotherapy</span><span class="sus">CRUK ← suspect</span></span>
+            <span class="illus">Illustration</span></li>
+          <li><b>Count a suspect clue.</b> Count how often it appears with each label, and how often with other labels.</li>
+          <li><b>Score with and without the clue.</b> Score the examples that contain it and the examples that do not. A large gap shows that the model depends on the clue.</li>
+          <li><b>Read a sample per label.</b> Look for repeated phrases or templates.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="decision short" id="d6" aria-labelledby="d6-t">
+      <div class="d-head"><span class="d-num">06</span><span class="d-group">Can you trust it?</span><span class="short-tag">Short note</span></div>
+      <h2 id="d6-t">Match to real use</h2>
+      <p class="oneline">If real inputs differ from your data, the test score may not hold.</p>
+      <p>Real inputs can come from a later period or from new sources. They can also have a different mix of labels.</p>
+    </section>
+
+    <!-- ============ C ============ -->
+    <div class="group-head" id="g-c"><span class="g-letter">C</span><h2>Clean</h2></div>
+
+    <section class="decision" id="d7" aria-labelledby="d7-t">
+      <div class="d-head"><span class="d-num">07</span><span class="d-group">Clean</span></div>
+      <h2 id="d7-t">Rows to drop</h2>
+      <p class="oneline">Find the broken rows. Drop them or fix them. Clean as little as possible.</p>
+      <figure class="fig">
+        <p class="fig-title">Try it: keep, drop or fix each row?</p>
+        <ul class="triage" id="triage">
+          <li data-answer="keep" data-reason="A normal row.">
+            <span class="row-text"><code>“Influence of anaemia on clot structure. Thrombosis is…”</code><span class="chip-mark">blood</span></span>
+            <span class="choices"><button type="button" data-c="keep" aria-pressed="false">Keep</button><button type="button" data-c="drop" aria-pressed="false">Drop</button><button type="button" data-c="fix" aria-pressed="false">Fix</button></span>
+            <span class="verdict" hidden></span>
+          </li>
+          <li data-answer="drop" data-reason="There is no input.">
+            <span class="row-text"><span class="empty">(empty text)</span><span class="chip-mark">blood</span></span>
+            <span class="choices"><button type="button" data-c="keep" aria-pressed="false">Keep</button><button type="button" data-c="drop" aria-pressed="false">Drop</button><button type="button" data-c="fix" aria-pressed="false">Fix</button></span>
+            <span class="verdict" hidden></span>
+          </li>
+          <li data-answer="drop" data-reason="This is placeholder text. It teaches the model nothing.">
+            <span class="row-text"><code>“Abstract not available”</code><span class="chip-mark">cancer</span></span>
+            <span class="choices"><button type="button" data-c="keep" aria-pressed="false">Keep</button><button type="button" data-c="drop" aria-pressed="false">Drop</button><button type="button" data-c="fix" aria-pressed="false">Fix</button></span>
+            <span class="verdict" hidden></span>
+          </li>
+          <li data-answer="fix" data-reason="Repair the broken formatting, then keep the row.">
+            <span class="row-text"><code>“Patients&amp;#39; outcomes &lt;br&gt; after…”</code><span class="chip-mark">stroke</span></span>
+            <span class="choices"><button type="button" data-c="keep" aria-pressed="false">Keep</button><button type="button" data-c="drop" aria-pressed="false">Drop</button><button type="button" data-c="fix" aria-pressed="false">Fix</button></span>
+            <span class="verdict" hidden></span>
+          </li>
+          <li data-answer="fix" data-reason="Change the label spelling to “blood”.">
+            <span class="row-text"><code>“Gene therapy for haemophilia…”</code><span class="chip-mark">“Blood ”</span></span>
+            <span class="choices"><button type="button" data-c="keep" aria-pressed="false">Keep</button><button type="button" data-c="drop" aria-pressed="false">Drop</button><button type="button" data-c="fix" aria-pressed="false">Fix</button></span>
+            <span class="verdict" hidden></span>
+          </li>
+          <li data-answer="keep" data-reason="The text is short, but real inputs can be short too.">
+            <span class="row-text"><code>“Chest pain after exercise”</code><span class="chip-mark">cardiovascular</span></span>
+            <span class="choices"><button type="button" data-c="keep" aria-pressed="false">Keep</button><button type="button" data-c="drop" aria-pressed="false">Drop</button><button type="button" data-c="fix" aria-pressed="false">Fix</button></span>
+            <span class="verdict" hidden></span>
+          </li>
+        </ul>
+        <button type="button" class="text-btn" id="triage-all">Show all answers</button>
+      </figure>
+      <div class="rule">
+        <p class="rule-tag">Clean as little as possible</p>
+        <p>Do not change all text to lowercase. Do not remove punctuation or numbers. Models like this one use them as clues. Remove only what is broken.</p>
+      </div>
+      <div class="rule">
+        <p class="rule-tag">Extra rule for the test set</p>
+        <p>Drop a test row only if it is broken. Never drop a test row because it is hard. Report each row that you drop. If not, the score looks better than it is.</p>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>Keep <span class="default">DEFAULT</span></b><span>Leave the row as it is.</span></li>
+          <li><b>Drop</b><span>Remove the row.</span></li>
+          <li><b>Fix</b><span>Repair the formatting, or correct the label spelling.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span><b>Usable.</b> Does the row have an input and a valid label?</span></li>
+          <li><span><b>Real use.</b> Will real inputs look like this row? If real inputs can be short or untidy, keep such rows. The model must handle them.</span></li>
+          <li><span><b>Fixable.</b> Can you repair the row instead of dropping it?</span></li>
+          <li><span><b>Which set.</b> You can clean training rows freely. Test rows follow the stricter rule.</span></li>
+        </ol>
+      </div>
+      <details class="checks">
+        <summary>Checks to run</summary>
+        <ol>
+          <li><b>Missing values</b> in each column.</li>
+          <li><b>The 20 shortest texts.</b> Placeholders show up here.</li>
+          <li><b>The most repeated texts.</b> Placeholders and templates repeat.</li>
+          <li><b>Odd characters:</b> HTML tags, broken characters like <code>â€™</code>, long runs of symbols.</li>
+          <li><b>Each label value and its count.</b> This finds wrong spellings and values that are not in the list. For multi-label, also count the labels on each example. Flag examples above the allowed maximum.</li>
+          <li><b>A cleaning report.</b> Print the number of rows after each step, so that no step removes too much without notice.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="decision" id="d8" aria-labelledby="d8-t">
+      <div class="d-head"><span class="d-num">08</span><span class="d-group">Clean</span></div>
+      <h2 id="d8-t">Duplicates</h2>
+      <p class="oneline">A duplicate is the same example in more than one row. Remove duplicates before you split the data.</p>
+      <figure class="fig">
+        <p class="fig-title">Three kinds of duplicate</p>
+        <div class="kinds">
+          <div class="kind"><b>Exact copy</b><span class="rows"><code>“Gene therapy for haemophilia A…” → blood</code><code>“Gene therapy for haemophilia A…” → blood</code></span></div>
+          <div class="kind"><b>Conflicting copy</b><span class="rows"><code>“Gene therapy for haemophilia A…” → blood</code><code>“Gene therapy for haemophilia A…” → blood; <span class="diff">congenital disorders</span></code></span></div>
+          <div class="kind"><b>Near-copy</b><span class="rows"><code>“Gene therapy for haemophilia A…”</code><code>“Gene therapy for haemophilia A <span class="diff">(renewal)</span>…”</code></span></div>
+        </div>
+      </figure>
+      <figure class="fig">
+        <p class="fig-title">Why it matters most: leakage</p>
+        <div class="leak" role="img" aria-label="The same row is in the training set and in the test set. The model has already seen the answer, so the test score is too high.">
+          <div class="set"><div class="set-name">Training set</div><div class="set-row">“Asthma in children…” → respiratory</div><div class="set-row twin">“Gene therapy for haemophilia A…” → blood</div><div class="set-row">“Sleep and memory…” → mental health</div></div>
+          <div class="leak-arrow">same text</div>
+          <div class="set"><div class="set-name">Test set</div><div class="set-row">“Hip fracture care…” → musculoskeletal</div><div class="set-row twin">“Gene therapy for haemophilia A…” → blood</div></div>
+        </div>
+        <figcaption>The model already saw this test answer during training. So the test score is too high.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">Why it matters</h3>
+        <ol class="qs">
+          <li><span><b>Leakage.</b> A copy in the training set and its twin in the test set make the score too high.</span></li>
+          <li><span><b>Extra weight.</b> A repeated row counts many times in training, so the model leans toward it.</span></li>
+          <li><span><b>Mixed signals.</b> Conflicting copies give two answers for one input. They also show how consistent the labels are.</span></li>
+        </ol>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <div class="fig" style="padding:0">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th scope="col">Kind</th><th scope="col">Options</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Exact copies</th><td><b>Keep one</b> <span class="default">DEFAULT</span></td></tr>
+              <tr><th scope="row">Conflicting copies</th><td><b>Drop all copies</b> <span class="default">DEFAULT</span> · keep one · combine their labels (multi-label only)</td></tr>
+              <tr><th scope="row">Near-copies</th><td>Keep all · keep one · put them in the same set (see 9–10)</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Order</h3>
+        <ol class="steps"><li>Remove duplicates</li><li>Split the data</li><li>Check that no text is in two sets</li></ol>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span><b>Kind.</b> Is it an exact copy, a conflicting copy or a near-copy?</span></li>
+          <li><span><b>Where.</b> Are the copies only in the training set (extra weight)? Or are they in two sets (leakage)? Always fix leakage.</span></li>
+          <li><span><b>Conflicts.</b> Is one label clearly correct? In multi-label, if both labels look valid, combine them. If you cannot tell, drop all copies.</span></li>
+          <li><span><b>Near-copies.</b> Are they the same example, for example a renewal? Then treat them as duplicates. If they only share a topic, keep both rows.</span></li>
+        </ol>
+      </div>
+      <details class="checks">
+        <summary>Checks to run</summary>
+        <ol>
+          <li><b>Count the exact copies.</b></li>
+          <li><b>Count the conflicting copies.</b> This also gives a rough measure of label noise.</li>
+          <li><b>Search for near-copies.</b> Score each pair of texts by the words that they share. Read the pairs from the most similar down. Find the point where “same example” stops.</li>
+          <li><b>Check the overlap after the split.</b> No text, and no near-copy, must be in more than one set.</li>
+        </ol>
+      </details>
+    </section>
+
+    <!-- ============ D ============ -->
+    <div class="group-head" id="g-d"><span class="g-letter">D</span><h2>Split</h2></div>
+
+    <section class="decision" id="d9" aria-labelledby="d9-t">
+      <span id="d10" aria-hidden="true"></span>
+      <div class="d-head"><span class="d-num">09–10</span><span class="d-group">Split</span></div>
+      <h2 id="d9-t">Test and validation sets</h2>
+      <p class="oneline">The validation set is the practice exam. The test set is the final exam. Use the test set one time only, at the end.</p>
+      <figure class="fig">
+        <div class="splitbar" role="img" aria-label="A common split: 70% training, 10% validation, 20% test.">
+          <div class="tr">70%</div><div class="va">10%</div><div class="te">20%</div>
+        </div>
+        <div class="split-legend">
+          <div><b><span class="sw sq"></span>Training set</b><span>The model learns from it.</span></div>
+          <div><b><span class="sw sq" style="background:var(--mark)"></span>Validation set</b><span>You tune your choices on it.</span></div>
+          <div><b><span class="sw sq" style="background:var(--ink)"></span>Test set</b><span>You score it one time, at the end.</span></div>
+        </div>
+        <figcaption>Why two exams: each choice that you tune on a set makes the score on that set look better than it is. The validation set takes all the tuning: the best checkpoint, the cutoffs, the baseline prompts. The test set stays clean, so its score is honest.</figcaption>
+      </figure>
+      <div class="rule">
+        <p class="rule-tag">Rules</p>
+        <ul>
+          <li><b>Score the test set one time, at the end.</b> Never use it to make a decision.</li>
+          <li><b>The validation set must look like the test set:</b> the same period, the same sources, the same mix of labels.</li>
+          <li><b>Both sets must look like real use.</b></li>
+          <li><b>Both sets need enough examples of each label</b> to measure it (see the noise check in 3).</li>
+          <li><b>Keep related rows together.</b> Rows from the same person, customer or document go into the same set. Near-copies do too. If not, the model recognises what it already saw, and the score is too high.</li>
+        </ul>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Try it: split 50 examples three ways<span class="illus">Illustration</span></p>
+        <div class="legend"><span><span class="sw sq"></span>Common label</span><span><span class="sw sq s2"></span>Rare label</span><span><code>'22</code> = year of the example</span></div>
+        <div class="sim-controls">
+          <div class="seg" role="group" aria-label="Split method">
+            <button type="button" data-split="random" aria-pressed="true">Random</button>
+            <button type="button" data-split="strat" aria-pressed="false">Stratified</button>
+            <button type="button" data-split="time" aria-pressed="false">By time</button>
+          </div>
+          <button type="button" class="text-btn" id="reshuffle">Shuffle again</button>
+        </div>
+        <div class="bins">
+          <div class="bin" id="bin-train"><div class="bin-head"><b>Training · 35</b><span class="cnt"></span></div><div class="toks"></div></div>
+          <div class="bin" id="bin-val"><div class="bin-head"><b>Validation · 5</b><span class="cnt"></span></div><div class="toks"></div></div>
+          <div class="bin" id="bin-test"><div class="bin-head"><b>Test · 10</b><span class="cnt"></span></div><div class="toks"></div></div>
+        </div>
+        <p class="sim-note" id="sim-note" aria-live="polite"></p>
+        <figcaption>Ten of the 50 examples have the rare label. “By group” works like “by time”: all examples from one group go into the same set.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to split</h3>
+        <ul class="opts">
+          <li><b>Official split</b><span>If the dataset comes with one, use it. Your score can then be compared with published results.</span></li>
+          <li><b>Random</b><span>Shuffle the rows and cut. Simple.</span></li>
+          <li><b>Stratified</b><span>Each set gets the same share of each label. Use it when some labels are rare. For multi-label, it needs an add-on library.</span></li>
+          <li><b>By time</b><span>Train on older data. Test on the newest data. Use it when the model will meet future data.</span></li>
+          <li><b>By group</b><span>All rows from one person, customer or document go into one set. Use it when real use brings new groups.</span></li>
+          <li><b>Sizes</b><span>Common splits are 70/10/20 and 80/10/10. Larger exam sets give steadier scores, but leave less for training.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide: the test set</h3>
+        <ol class="qs">
+          <li><span><b>Comparison.</b> Must you compare with published numbers? Then use the official split.</span></li>
+          <li><span><b>Real use.</b> If not, split the way real use works. Future data: split by time. New groups: split by group. Neither: use a stratified split.</span></li>
+        </ol>
+        <h3 class="block-title" style="margin-top:8px">How to decide: the validation set</h3>
+        <ol class="qs">
+          <li><span><b>Same method as the test set.</b> If the test set is the newest period, take the validation set from the newest period in the training data.</span></li>
+          <li><span><b>Size.</b> Make it large enough to hold enough rare-label examples to set a cutoff for each label.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ E ============ -->
+    <div class="group-head" id="g-e"><span class="g-letter">E</span><h2>Shape for training</h2></div>
+
+    <section class="decision" id="d11" aria-labelledby="d11-t">
+      <div class="d-head"><span class="d-num">11</span><span class="d-group">Shape for training</span></div>
+      <h2 id="d11-t">Length</h2>
+      <p class="oneline">The model reads only a fixed number of tokens. It does not see the text after that limit.</p>
+      <figure class="fig">
+        <p class="fig-title">Try it: move the length limit<span class="illus">Illustration</span></p>
+        <div class="control">
+          <label for="trunc-n">Limit in tokens</label>
+          <input type="range" id="trunc-n" min="16" max="160" step="4" value="64">
+          <output id="trunc-n-out" for="trunc-n">64</output>
+        </div>
+        <p class="trunc" id="trunc-text"></p>
+        <p class="sim-note" id="trunc-note" aria-live="polite"></p>
+        <figcaption>The highlighted sentence holds the main topic. This demo counts one token as ¾ of a word. A real tokenizer (the tool that cuts text into tokens) gives exact counts.</figcaption>
+      </figure>
+      <div class="two">
+        <div><b>A longer limit</b><span>The model sees more of each text. Training is slower and needs more memory.</span></div>
+        <div><b>A shorter limit</b><span>Training is faster. The part of the text that decides the label can be cut.</span></div>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>Longest training text <span class="default">DEFAULT</span></b><span>Nothing is cut. One very long text makes each batch slow.</span></li>
+          <li><b>A percentile (95th–99th)</b><span>Almost all texts fit. Only the longest few are cut.</span></li>
+          <li><b>A fixed limit</b><span>Set by your compute budget, or to match a model that you compare against.</span></li>
+          <li><b>What to cut</b><span>The end <span class="default">DEFAULT</span>, or keep the start and the end.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span><b>Lengths.</b> How long are the typical text and the longest text? Count with the model's own tokenizer, because models count differently.</span></li>
+          <li><span><b>Share cut.</b> What share of the texts does each possible limit cut?</span></li>
+          <li><span><b>Where the answer sits.</b> Is the deciding text at the start, the middle or the end? If it is early, cutting the end loses little.</span></li>
+          <li><span><b>Cost.</b> Can you pay for the training time at that length?</span></li>
+          <li><span><b>Comparison.</b> Does a model that you compare against use a fixed limit?</span></li>
+        </ol>
+        <p>Then test two limits on the validation set. If the scores are almost the same, use the shorter limit.</p>
+      </div>
+    </section>
+
+    <section class="decision" id="d12" aria-labelledby="d12-t">
+      <div class="d-head"><span class="d-num">12</span><span class="d-group">Shape for training</span></div>
+      <h2 id="d12-t">Imbalance</h2>
+      <p class="oneline">Some labels have many more examples than others. The model learns to prefer the common labels.</p>
+      <figure class="fig">
+        <div class="legend"><span><span class="sw sq"></span>Common label</span><span><span class="sw sq s2"></span>Rare label</span></div>
+        <div class="units" id="units" role="img" aria-label="50 squares for the common label and 1 square for the rare label."></div>
+        <figcaption>For each rare example, the model sees 50 common examples. <span class="illus">Illustration: 5,000 and 100 examples</span></figcaption>
+      </figure>
+      <p>Each training example moves the model a little. Common labels move it much more often. So the model gives rare labels low confidence, even when they are correct.</p>
+      <div class="block">
+        <h3 class="block-title">Options (training set only)</h3>
+        <ul class="opts">
+          <li><b>Do nothing <span class="default">DEFAULT</span></b><span>Train on the data as it is. Judge the model with the score of each label, not with overall accuracy.</span></li>
+          <li><b>Class weights</b><span>A mistake on a rare label counts more in training.</span></li>
+          <li><b>Oversample</b><span>Repeat the rare examples in training.</span></li>
+          <li><b>Undersample</b><span>Remove common examples until the labels are balanced. Single-label tasks only. It throws data away.</span></li>
+        </ul>
+        <p>The validation set and the test set always keep the real mix.</p>
+      </div>
+      <div class="block">
+        <h3 class="block-title">The cutoff: a fix after training</h3>
+        <p>The model gives each label a confidence from 0 to 1. The cutoff is the confidence above which the label counts as “yes”. The cutoff works differently for each task type:</p>
+        <div class="fig" style="padding:0">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th scope="col">Task type</th><th scope="col">How the model decides</th><th scope="col">Cutoff</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Binary</th><td>One confidence: “how likely is this spam?”</td><td><span class="yes">✓</span>One cutoff. Lower it to find more of the rare class.</td></tr>
+              <tr><th scope="row">Multi-label</th><td>One confidence for each label. Each label is judged alone.</td><td><span class="yes">✓</span>One cutoff for each label.</td></tr>
+              <tr><th scope="row">Multi-class</th><td>The confidences add up to 1. The highest one wins.</td><td><span class="no">✕</span>No cutoff. The highest confidence always wins.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Try it: move the cutoff for the label “ear”<span class="illus">Illustration</span></p>
+        <p class="caption">Each dot is one grant. Its position shows the model's confidence for “ear”. Dots right of the cutoff get “yes”.</p>
+        <div class="legend"><span><span class="sw"></span>Real label: ear (6 grants)</span><span><span class="sw s2"></span>Real label: not ear (14 grants)</span></div>
+        <div class="tiles">
+          <div class="tile"><span class="t-label"><span class="ic good">✓</span>Found</span><span class="t-val" id="cut-found">2 of 6</span></div>
+          <div class="tile"><span class="t-label"><span class="ic bad">✕</span>Missed</span><span class="t-val" id="cut-missed">4</span></div>
+          <div class="tile"><span class="t-label"><span class="ic warn">!</span>False alarms</span><span class="t-val" id="cut-fa">2</span></div>
+        </div>
+        <div class="chart" id="cut-chart"></div>
+        <div class="control">
+          <label for="cut-n">Cutoff</label>
+          <input type="range" id="cut-n" min="0.05" max="0.95" step="0.01" value="0.5">
+          <output id="cut-n-out" for="cut-n">0.50</output>
+        </div>
+        <p class="sim-note" id="cut-note" aria-live="polite"></p>
+        <figcaption>A lower cutoff finds more “ear” grants. It also gives more false alarms. You set the cutoff after training, on the validation set, so a change needs no new training. Class weights change the model itself, so each change needs new training.</figcaption>
+        <details class="checks">
+          <summary>Show the grants as a table</summary>
+          <div class="tbl-wrap"><table class="small-table" id="cut-table"><thead><tr><th scope="col">Grant</th><th scope="col">Confidence for “ear”</th><th scope="col">Real label</th></tr></thead><tbody></tbody></table></div>
+        </details>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span><b>Ratio.</b> How many times larger is the largest label than the smallest label?</span></li>
+          <li><span><b>Stakes.</b> Does a missed rare label matter for the job?</span></li>
+          <li><span><b>Task type.</b> For binary or multi-label, try the cutoff first. Multi-class has no cutoff, so class weights or oversampling are the main tools.</span></li>
+        </ol>
+        <p>Train one time without weights. On the validation set, check the recall of each label: the share of its real cases that the model finds. Add weights only if the model still misses rare labels. Weights and a low cutoff push in the same direction. Together, they can cause too many false alarms.</p>
+      </div>
+    </section>
+
+    <section class="decision" id="rules" aria-labelledby="rules-t">
+      <div class="d-head"><span class="d-num">✓</span><span class="d-group">Always</span></div>
+      <h2 id="rules-t">Rules for every dataset</h2>
+      <ul class="rules-list">
+        <li><span>Never change the raw file. Use a script that writes a new file. Print the number of rows after each step.</span></li>
+        <li><span>Pin the data version, as you pin the model version.</span></li>
+        <li><span>Look at the data before you fill in the settings.</span></li>
+        <li><span>Do not look at the test labels until the final score. Use the test set only to check the format and the overlap with training.</span></li>
+        <li><span>Tune all choices on the validation set: checkpoints, cutoffs and baseline prompts.</span></li>
+        <li><span>Apply the same rules to baselines. Examples that you show to a prompted model come from the training set only.</span></li>
+        <li><span>Take random samples. Never take “the first N rows”, because files are often sorted.</span></li>
+        <li><span>Prepare new inputs in the same way as the training inputs.</span></li>
+      </ul>
+    </section>
+  </main>
+</div>
+</div>
+
+<div id="view-cheat" role="tabpanel" aria-labelledby="tab-cheat" hidden>
+  <div class="wrap cheat">
+    <h2>Cheat sheet</h2>
+    <p>One row for each decision. <b class="def" style="color:var(--accent)">Red bold</b> marks the default choice. Use this table when you start a new dataset.</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">#</th><th scope="col">Decision</th><th scope="col">Ask</th><th scope="col">Options</th><th scope="col">Decide by</th><th scope="col">If you skip it</th></tr></thead>
+        <tbody>
+          <tr class="grp"><td colspan="6">A · What is the task?</td></tr>
+          <tr><td class="num">1</td><th scope="row">Input</th><td>Which columns does the model read?</td><td><b class="def">Main text field</b> · several fields in a fixed format · add metadata</td><td>Is the field always there when the model is used? Does it give away the answer?</td><td>Leakage: a high test score that fails in real use</td></tr>
+          <tr><td class="num">2</td><th scope="row">Target and task type</th><td>Which column holds the label? How many labels can one example have?</td><td>Binary · multi-class · multi-label · reduce to one label</td><td>Count the labels on each example. List each label value. Fix the spellings.</td><td>The wrong training method and score. Spelling variants become extra labels.</td></tr>
+          <tr><td class="num">3</td><th scope="row">Label set</th><td>Does each label have enough examples to learn and to measure?</td><td><b class="def">Keep all</b> · merge · drop · add “other”</td><td>Examples per label; user need; cost of a miss; freedom to change; overlap</td><td>Claims based on a few examples, or a needed label removed</td></tr>
+          <tr class="grp"><td colspan="6">B · Can you trust it?</td></tr>
+          <tr><td class="num">4</td><th scope="row">Label quality</th><td>Who made the labels, under which rules? How consistent are they?</td><td><b class="def">Accept</b> · fix clear errors (training set only) · relabel a sample · drop a noisy source</td><td>The documentation; identical texts with different labels; a sample per label</td><td>You cannot tell a model error from a label error</td></tr>
+          <tr><td class="num">5</td><th scope="row">Shortcuts</th><td>Is there a clue that goes with a label but is not the reason for it?</td><td><b class="def">Leave in</b> · mask the clue · drop the rows</td><td>Will the clue appear in real inputs in the same way?</td><td>The model learns the clue and fails without it</td></tr>
+          <tr><td class="num">6</td><th scope="row">Match to real use</th><td>Does the data look like real use: period, sources, label mix?</td><td><b class="def">Accept and document</b> · test on the newest period · reweight</td><td>When and where people will use the model</td><td>A test score that does not hold in use</td></tr>
+          <tr class="grp"><td colspan="6">C · Clean</td></tr>
+          <tr><td class="num">7</td><th scope="row">Rows to drop</th><td>Which rows are broken?</td><td><b class="def">Keep</b> · drop · fix</td><td>Usable? Like real inputs? Fixable? Which set? Drop test rows only if broken.</td><td>Junk teaches noise. Too much cleaning removes clues.</td></tr>
+          <tr><td class="num">8</td><th scope="row">Duplicates</th><td>Which rows are the same example?</td><td>Exact: <b class="def">keep one</b>. Conflicting: <b class="def">drop all</b> · keep one · combine. Near: keep · keep one · same set.</td><td>Count each kind. Check the sets after the split.</td><td>Copies in two sets make the score too high</td></tr>
+          <tr class="grp"><td colspan="6">D · Split</td></tr>
+          <tr><td class="num">9</td><th scope="row">Test set</th><td>What is the final exam?</td><td><b class="def">Official split, if one exists</b> · random · stratified · by time · by group</td><td>Must you compare with published results? Split the way real use works.</td><td>A score that flatters, or that you cannot compare</td></tr>
+          <tr><td class="num">10</td><th scope="row">Validation set</th><td>What is the practice exam?</td><td><b class="def">Random part of training</b> · stratified · same period as test · 10% or more</td><td>It must look like the test set. It needs enough of each label to set a cutoff.</td><td>You tune for the wrong target</td></tr>
+          <tr class="grp"><td colspan="6">E · Shape for training</td></tr>
+          <tr><td class="num">11</td><th scope="row">Length</th><td>How many tokens does the model read, and what is cut?</td><td><b class="def">Longest text</b> · a percentile · a fixed limit. Cut the <b class="def">end</b>, or keep the start and the end.</td><td>Lengths; share cut; where the answer sits; cost; comparison</td><td>Slow training, or the deciding text cut off</td></tr>
+          <tr><td class="num">12</td><th scope="row">Imbalance</th><td>Should rare labels count more in training?</td><td><b class="def">No</b> · class weights · oversample · undersample (single-label only)</td><td>Ratio; stakes; task type. Try the cutoff first (binary, multi-label).</td><td>Rare labels ignored, or too many false alarms</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(tag, attrs, text, parent) { var e = svg(tag, attrs, parent); e.textContent = text; return e; }
+  function f2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+
+  /* ---------- Views and navigation ---------- */
+  var tabs = $$("[data-view]");
+  function showView(v) {
+    $("#view-learn").hidden = v !== "learn";
+    $("#view-cheat").hidden = v !== "cheat";
+    tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t.getAttribute("data-view") === v)); });
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () {
+      var v = t.getAttribute("data-view");
+      showView(v);
+      try { history.replaceState(null, "", v === "cheat" ? "#cheatsheet" : "#learn"); } catch (e) {}
+      $("#views").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    });
+  });
+  showView(location.hash === "#cheatsheet" ? "cheat" : "learn");
+
+  function goTo(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    showView("learn");
+    var target = id === "d10" ? document.getElementById("d9") : el;
+    target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }
+  $$("a[data-nav]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      goTo(a.getAttribute("href").slice(1));
+    });
+  });
+  var jump = $("#jump");
+  jump.addEventListener("change", function () { goTo(jump.value); });
+
+  var railLinks = {};
+  $$(".rail a").forEach(function (a) { railLinks[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        Object.keys(railLinks).forEach(function (k) { railLinks[k].classList.remove("active"); });
+        var a = railLinks[en.target.id];
+        if (a) a.classList.add("active");
+        if (jump.querySelector('option[value="' + en.target.id + '"]')) jump.value = en.target.id;
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    $$("section.decision").forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---------- 2. Task type switcher ---------- */
+  var TT = {
+    binary: {
+      def: "Binary: each example has one of two labels.",
+      input: "“WINNER! Claim your prize now”",
+      bars: [["spam", 0.94]], cutoff: 0.5, result: ["spam"],
+      how: "The model gives one confidence. Above the cutoff, the answer is “spam”. Below the cutoff, the answer is “not spam”."
+    },
+    multiclass: {
+      def: "Multi-class: each example has exactly one label, from three or more.",
+      input: "“The team won the cup final”",
+      bars: [["sports", 0.81], ["politics", 0.12], ["tech", 0.07]], cutoff: null, result: ["sports"],
+      how: "The confidences add up to 1. The label with the highest confidence wins. There is no cutoff."
+    },
+    multilabel: {
+      def: "Multi-label: each example can have any number of labels.",
+      input: "“Memory and mood in older adults”",
+      bars: [["mental health", 0.77], ["neurological", 0.62], ["blood", 0.05], ["cancer", 0.03]], cutoff: 0.5, result: ["mental health", "neurological"],
+      how: "The model gives each label its own confidence. Each label above the cutoff is a “yes”, so many labels can be “yes”."
+    }
+  };
+  function renderTT(kind) {
+    var d = TT[kind];
+    $$("[data-tt]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-tt") === kind)); });
+    $("#tt-def").textContent = d.def;
+    $("#tt-input").textContent = d.input;
+    $("#tt-how").textContent = d.how;
+    var box = $("#tt-bars");
+    box.textContent = "";
+    var maxV = Math.max.apply(null, d.bars.map(function (b) { return b[1]; }));
+    box.classList.toggle("has-cut", d.cutoff !== null);
+    d.bars.forEach(function (b, bi) {
+      var yes = d.cutoff === null ? b[1] === maxV : b[1] >= d.cutoff;
+      var row = document.createElement("div"); row.className = "bar-row";
+      var name = document.createElement("span"); name.className = "bar-name"; name.textContent = b[0];
+      var track = document.createElement("span"); track.className = "bar-track";
+      var fill = document.createElement("span"); fill.className = "bar-fill" + (yes ? "" : " off"); fill.style.width = (b[1] * 100) + "%";
+      track.appendChild(fill);
+      if (d.cutoff !== null) {
+        var cut = document.createElement("span"); cut.className = "bar-cut"; cut.style.left = (d.cutoff * 100) + "%"; track.appendChild(cut);
+        if (bi === 0) { var tag = document.createElement("span"); tag.className = "cut-tag"; tag.style.left = (d.cutoff * 100) + "%"; tag.textContent = "cutoff " + d.cutoff.toFixed(1); track.appendChild(tag); }
+      }
+      var val = document.createElement("span"); val.className = "bar-val"; val.textContent = b[1].toFixed(2);
+      var ver = document.createElement("span"); ver.className = "bar-verdict " + (yes ? "y" : "n");
+      ver.textContent = d.cutoff === null ? (yes ? "wins" : "") : (yes ? "yes" : "no");
+      row.appendChild(name); row.appendChild(track); row.appendChild(val); row.appendChild(ver);
+      box.appendChild(row);
+    });
+    var res = $("#tt-result"); res.textContent = "Answer:";
+    d.result.forEach(function (r) { var c = document.createElement("span"); c.className = "chip-mark"; c.textContent = r; res.appendChild(c); });
+  }
+  $$("[data-tt]").forEach(function (b) { b.addEventListener("click", function () { renderTT(b.getAttribute("data-tt")); }); });
+  renderTT("multilabel");
+
+  /* ---------- 3. Noise check chart ---------- */
+  var noise = (function () {
+    var box = $("#noise-chart"), slider = $("#noise-n"), out = $("#noise-n-out"), big = $("#noise-big"), text = $("#noise-text");
+    var W = 0, H = 240, m = { l: 42, r: 18, t: 26, b: 40 }, refs = null;
+    function fmt(v) { return v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10); }
+    function x(n) { return m.l + (n - 1) / 99 * (W - m.l - m.r); }
+    function y(v) { return H - m.b - v / 100 * (H - m.t - m.b); }
+    function build() {
+      W = Math.max(280, Math.round(box.clientWidth));
+      box.textContent = "";
+      var s = svg("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
+        "aria-label": "Line chart. One mistake changes the score by 100 divided by n points. The line falls fast until about 20 test examples, then it flattens." }, box);
+      [0, 25, 50, 75, 100].forEach(function (v) {
+        svg("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), "class": v === 0 ? "axis" : "grid" }, s);
+        txt("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end", "class": "tick" }, String(v), s);
+      });
+      [1, 25, 50, 75, 100].forEach(function (n) { txt("text", { x: x(n), y: H - m.b + 17, "text-anchor": "middle", "class": "tick" }, String(n), s); });
+      txt("text", { x: m.l - 8, y: 12, "class": "axis-title" }, "Points per mistake", s);
+      txt("text", { x: W - m.r, y: H - 4, "text-anchor": "end", "class": "axis-title" }, "Test examples for the label (n)", s);
+      svg("line", { x1: m.l, x2: W - m.r, y1: y(5), y2: y(5), "class": "ref" }, s);
+      txt("text", { x: W - m.r, y: y(5) - 6, "text-anchor": "end", "class": "ref-label" }, "5 points", s);
+      var d = "";
+      for (var n = 1; n <= 100; n += 0.25) d += (n === 1 ? "M" : "L") + x(n).toFixed(1) + "," + y(100 / n).toFixed(1);
+      svg("path", { d: d, "class": "line-s1" }, s);
+      var drop = svg("line", { "class": "drop" }, s);
+      var hair = svg("line", { y1: m.t, y2: H - m.b, "class": "hair", visibility: "hidden" }, s);
+      var dot = svg("circle", { r: 5, "class": "dot-s1" }, s);
+      var ov = svg("rect", { x: m.l - 6, y: m.t, width: W - m.l - m.r + 12, height: H - m.t - m.b, "class": "overlay" }, s);
+      var tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; box.appendChild(tip);
+      function nAt(e) {
+        var r = s.getBoundingClientRect();
+        var px = (e.clientX - r.left) * (W / r.width);
+        return Math.min(100, Math.max(1, Math.round(1 + (px - m.l) / (W - m.l - m.r) * 99)));
+      }
+      ov.addEventListener("pointermove", function (e) {
+        var n = nAt(e), r = s.getBoundingClientRect(), k = r.width / W;
+        hair.setAttribute("x1", x(n)); hair.setAttribute("x2", x(n)); hair.setAttribute("visibility", "visible");
+        tip.textContent = "";
+        var st = document.createElement("strong"); st.textContent = fmt(100 / n) + " points";
+        var sp = document.createElement("span"); sp.textContent = "n = " + n + " test examples";
+        tip.appendChild(st); tip.appendChild(sp);
+        tip.style.left = Math.min(Math.max(x(n) * k, 70), r.width - 70) + "px";
+        tip.style.top = (y(100 / n) * k) + "px";
+        tip.hidden = false;
+      });
+      ov.addEventListener("pointerleave", function () { hair.setAttribute("visibility", "hidden"); tip.hidden = true; });
+      ov.addEventListener("click", function (e) { slider.value = nAt(e); update(); });
+      refs = { drop: drop, dot: dot };
+      update();
+    }
+    function update() {
+      var n = +slider.value, v = 100 / n;
+      out.textContent = String(n);
+      big.textContent = fmt(v);
+      var first = "With " + n + " test example" + (n === 1 ? "" : "s") + ", one mistake changes this label's score by " + fmt(v) + " point" + (v === 1 ? "" : "s") + ". ";
+      var second = n < 20 ? "That is more than a 5-point difference, so make no claims about this label." :
+        n === 20 ? "That is exactly a 5-point difference." : "That is less than a 5-point difference.";
+      text.textContent = first + second;
+      if (!refs) return;
+      refs.dot.setAttribute("cx", x(n)); refs.dot.setAttribute("cy", y(v));
+      refs.drop.setAttribute("x1", x(n)); refs.drop.setAttribute("x2", x(n));
+      refs.drop.setAttribute("y1", y(v)); refs.drop.setAttribute("y2", H - m.b);
+    }
+    slider.addEventListener("input", update);
+    return { build: build, box: box };
+  })();
+
+  /* ---------- 7. Triage quiz ---------- */
+  var LABEL = { keep: "Keep", drop: "Drop", fix: "Fix" };
+  function verdict(li, choice) {
+    var ans = li.getAttribute("data-answer"), v = $(".verdict", li);
+    v.textContent = "";
+    var ic = document.createElement("span");
+    var body = document.createElement("span");
+    if (choice === null || choice === ans) {
+      ic.className = "ic good"; ic.textContent = "✓";
+      body.textContent = (choice === null ? "" : "Correct. ") + LABEL[ans] + ": " + li.getAttribute("data-reason");
+    } else {
+      ic.className = "ic bad"; ic.textContent = "✕";
+      body.textContent = "Not this one. The answer is " + LABEL[ans] + ": " + li.getAttribute("data-reason");
+    }
+    v.appendChild(ic); v.appendChild(body); v.hidden = false;
+  }
+  $$("#triage li").forEach(function (li) {
+    $$("button", li).forEach(function (b) {
+      b.addEventListener("click", function () {
+        $$("button", li).forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+        verdict(li, b.getAttribute("data-c"));
+      });
+    });
+  });
+  $("#triage-all").addEventListener("click", function () {
+    $$("#triage li").forEach(function (li) { if ($(".verdict", li).hidden) verdict(li, null); });
+  });
+
+  /* ---------- 9-10. Split simulator ---------- */
+  (function () {
+    function rng(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function shuffle(arr, r) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    var RARE = { 1: 1, 6: 1, 9: 1, 13: 1, 18: 1, 24: 1, 29: 1, 33: 1, 41: 1, 47: 1 };
+    var EX = [];
+    for (var i = 0; i < 50; i++) EX.push({ id: i, year: i < 10 ? 22 : i < 25 ? 18 : 14, rare: !!RARE[i] });
+    function random(seed) { var a = shuffle(EX, rng(seed)); return { train: a.slice(0, 35), val: a.slice(35, 40), test: a.slice(40) }; }
+    function strat(seed) {
+      var r = rng(seed), rare = shuffle(EX.filter(function (e) { return e.rare; }), r), com = shuffle(EX.filter(function (e) { return !e.rare; }), r);
+      return { train: rare.slice(0, 7).concat(com.slice(0, 28)), val: rare.slice(7, 8).concat(com.slice(28, 32)), test: rare.slice(8).concat(com.slice(32)) };
+    }
+    function bytime(seed) {
+      var r = rng(seed);
+      function yr(y) { return shuffle(EX.filter(function (e) { return e.year === y; }), r); }
+      var y22 = yr(22), y18 = yr(18), y14 = yr(14);
+      return { test: y22, val: y18.slice(0, 5), train: y18.slice(5).concat(y14) };
+    }
+    var nodes = {};
+    EX.forEach(function (e) {
+      var t = document.createElement("span");
+      t.className = "tok" + (e.rare ? " rare" : "");
+      t.textContent = "'" + e.year;
+      t.title = (e.rare ? "Rare label" : "Common label") + ", 20" + e.year;
+      nodes[e.id] = t;
+    });
+    var seed = 1;
+    while (random(seed).val.filter(function (e) { return e.rare; }).length !== 0 && seed < 2000) seed++;
+    var mode = "random";
+    var note = $("#sim-note"), reshuffle = $("#reshuffle");
+    function apply(animate) {
+      var res = mode === "random" ? random(seed) : mode === "strat" ? strat(seed) : bytime(seed);
+      var first = {};
+      if (animate) Object.keys(nodes).forEach(function (id) { first[id] = nodes[id].getBoundingClientRect(); });
+      var counts = {};
+      ["train", "val", "test"].forEach(function (k) {
+        var bin = $("#bin-" + k), list = res[k].slice().sort(function (a, b) { return (b.rare - a.rare) || (b.year - a.year) || (a.id - b.id); });
+        var toks = $(".toks", bin);
+        list.forEach(function (e) { toks.appendChild(nodes[e.id]); });
+        var rare = list.filter(function (e) { return e.rare; }).length;
+        counts[k] = rare;
+        $(".cnt", bin).textContent = "rare: " + rare;
+      });
+      if (animate && !reduce) {
+        Object.keys(nodes).forEach(function (id) {
+          var n = nodes[id], a = first[id], b = n.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+          n.style.transition = "none";
+          n.style.transform = (dx || dy) ? "translate(" + dx + "px," + dy + "px)" : "";
+        });
+        requestAnimationFrame(function () { requestAnimationFrame(function () {
+          Object.keys(nodes).forEach(function (id) { nodes[id].style.transition = "transform 520ms cubic-bezier(.2,.7,.2,1)"; nodes[id].style.transform = ""; });
+        }); });
+      }
+      note.textContent = "";
+      var ic = document.createElement("span"), body = document.createElement("span");
+      if (mode === "random") {
+        if (counts.val === 0) { ic.className = "ic bad"; ic.textContent = "✕"; body.textContent = "Validation has no rare examples, so you cannot set a cutoff for the rare label. Select “Shuffle again”: the count changes each time."; }
+        else { ic.className = "ic warn"; ic.textContent = "!"; body.textContent = "Validation has " + counts.val + " rare example" + (counts.val === 1 ? "" : "s") + " out of 5. Select “Shuffle again”: the count changes each time."; }
+      } else if (mode === "strat") {
+        ic.className = "ic good"; ic.textContent = "✓"; body.textContent = "Each set has the same share of rare examples: 20%. Luck no longer decides the count.";
+      } else {
+        ic.className = "ic good"; ic.textContent = "✓"; body.textContent = "The test set has only the newest examples ('22). Validation has the next newest ('18). This copies real use: the model meets newer data.";
+      }
+      note.appendChild(ic); note.appendChild(body);
+      reshuffle.hidden = mode !== "random";
+    }
+    $$("[data-split]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        mode = b.getAttribute("data-split");
+        $$("[data-split]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+        apply(true);
+      });
+    });
+    reshuffle.addEventListener("click", function () { seed = (seed * 48271 + 11) % 2147483647; apply(true); });
+    apply(false);
+  })();
+
+  /* ---------- 11. Truncation demo ---------- */
+  (function () {
+    var TEXT = "Stroke is a leading cause of disability in adults. Many survivors lose the use of one hand. [This project will test a new robotic glove for hand rehabilitation after stroke.] The glove uses small motors to help patients move their fingers at home. We will recruit 120 patients from four hospitals. Half of them will use the glove for twelve weeks. The other half will receive usual care. We will measure hand function, daily activities and quality of life. We will also ask patients about their experience with the glove. In the future, the glove could also help people after other injuries.";
+    var box = $("#trunc-text"), slider = $("#trunc-n"), out = $("#trunc-n-out"), note = $("#trunc-note");
+    var spans = [], keyIdx = [], inKey = false;
+    TEXT.split(" ").forEach(function (w, i) {
+      if (w.charAt(0) === "[") { inKey = true; w = w.slice(1); }
+      var end = w.indexOf("]") !== -1; w = w.replace("]", "");
+      var s = document.createElement("span"); s.className = "w" + (inKey ? " key" : ""); s.textContent = w;
+      if (inKey) keyIdx.push(spans.length);
+      if (spans.length) box.appendChild(document.createTextNode(" "));
+      box.appendChild(s); spans.push(s);
+      if (end) inKey = false;
+    });
+    var marker = document.createElement("span"); marker.className = "scissor"; marker.textContent = "✂ limit";
+    function update() {
+      var n = +slider.value, read = Math.round(n * 0.75), total = spans.length;
+      out.textContent = String(n);
+      spans.forEach(function (s, i) { s.classList.toggle("cut", i >= read); });
+      if (read < total) box.insertBefore(marker, spans[read]); else if (marker.parentNode) marker.parentNode.removeChild(marker);
+      var shown = Math.min(read, total), pct = Math.round((total - shown) / total * 100);
+      var keyCut = keyIdx.some(function (i) { return i >= read; });
+      note.textContent = "";
+      var ic = document.createElement("span"), body = document.createElement("span");
+      ic.className = keyCut ? "ic bad" : "ic good"; ic.textContent = keyCut ? "✕" : "✓";
+      body.textContent = "The model reads about " + shown + " of " + total + " words. " + (pct === 0 ? "Nothing is cut. " : pct + "% of the text is cut. ") +
+        (keyCut ? "The highlighted sentence is cut, so the model cannot see the main topic." : "The highlighted sentence is inside the limit.");
+      note.appendChild(ic); note.appendChild(body);
+    }
+    slider.addEventListener("input", update);
+    update();
+  })();
+
+  /* ---------- 12. Imbalance units ---------- */
+  (function () {
+    var u = $("#units");
+    for (var i = 0; i < 51; i++) { var c = document.createElement("span"); c.className = "u" + (i === 50 ? " rare" : ""); u.appendChild(c); }
+  })();
+
+  /* ---------- 12. Cutoff chart ---------- */
+  var cutoff = (function () {
+    var EAR = [0.88, 0.71, 0.46, 0.34, 0.27, 0.16];
+    var NOT = [0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.22, 0.25, 0.29, 0.33, 0.38, 0.44, 0.53, 0.62];
+    var ORDER = [7, 15, 2, 19, 11, 4, 9, 13, 1, 17, 6, 20, 3, 12, 8, 18, 5, 14, 10, 16];
+    var G = EAR.map(function (c) { return { c: c, ear: true }; }).concat(NOT.map(function (c) { return { c: c, ear: false }; }));
+    G.forEach(function (g, i) { g.id = ORDER[i]; });
+    var tbody = $("#cut-table tbody");
+    G.slice().sort(function (a, b) { return a.id - b.id; }).forEach(function (g) {
+      var tr = document.createElement("tr");
+      [ "Grant " + g.id, g.c.toFixed(2), g.ear ? "ear" : "not ear" ].forEach(function (v) { var td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    var box = $("#cut-chart"), slider = $("#cut-n"), out = $("#cut-n-out"), note = $("#cut-note");
+    var W = 0, H = 206, m = { l: 18, r: 18, t: 30, b: 34 }, refs = null, yEar = 72, yNot = 136, R = 5;
+    function x(c) { return m.l + c * (W - m.l - m.r); }
+    function place(list, y0) {
+      var placed = [], step = 2 * R + 3, tries = [0, -step, step, -2 * step, 2 * step];
+      return list.slice().sort(function (a, b) { return a.c - b.c; }).map(function (g) {
+        var px = x(g.c), py = y0;
+        for (var t = 0; t < tries.length; t++) {
+          var cand = y0 + tries[t];
+          var free = placed.every(function (p) { return Math.hypot(p.x - px, p.y - cand) >= 2 * R + 2; });
+          if (free) { py = cand; break; }
+        }
+        var pt = { x: px, y: py, g: g }; placed.push(pt); return pt;
+      });
+    }
+    function setCut(v) { slider.value = Math.min(0.95, Math.max(0.05, Math.round(v * 100) / 100)); update(); }
+    function build() {
+      W = Math.max(280, Math.round(box.clientWidth));
+      box.textContent = "";
+      var s = svg("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
+        "aria-label": "Dot chart of 20 grants by confidence for the label ear. A vertical cutoff line splits the dots into yes on the right and no on the left." }, box);
+      var zone = svg("rect", { y: m.t, height: H - m.t - m.b, "class": "yes-zone" }, s);
+      var ov = svg("rect", { x: 0, y: 0, width: W, height: H, "class": "overlay" }, s);
+      svg("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, "class": "axis" }, s);
+      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { txt("text", { x: x(v), y: H - m.b + 17, "text-anchor": "middle", "class": "tick" }, String(v), s); });
+      txt("text", { x: W - m.r, y: H - 2, "text-anchor": "end", "class": "axis-title" }, "Confidence for “ear”", s);
+      var noL = txt("text", { x: m.l + 4, y: m.t + 14, "class": "zone-label" }, "← model says no", s);
+      var yesL = txt("text", { x: W - m.r - 4, y: m.t + 14, "text-anchor": "end", "class": "zone-label" }, "model says yes →", s);
+      var line = svg("line", { y1: m.t - 6, y2: H - m.b, "class": "cut-line" }, s);
+      var lab = txt("text", { y: m.t - 12, "text-anchor": "middle", "class": "cut-label" }, "", s);
+      var pts = place(G.filter(function (g) { return g.ear; }), yEar).concat(place(G.filter(function (g) { return !g.ear; }), yNot));
+      var tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; box.appendChild(tip);
+      var dots = pts.map(function (p) {
+        var dot = svg("circle", { cx: p.x, cy: p.y, r: R, "class": p.g.ear ? "dot-s1" : "dot-s2" }, s);
+        var hit = svg("circle", { cx: p.x, cy: p.y, r: 12, "class": "hit", tabindex: "0",
+          "aria-label": "Grant " + p.g.id + ", confidence " + p.g.c.toFixed(2) + ", real label " + (p.g.ear ? "ear" : "not ear") }, s);
+        function show() {
+          var cut = +slider.value, yes = p.g.c >= cut, k = s.getBoundingClientRect().width / W;
+          var state = p.g.ear ? (yes ? "found" : "missed") : (yes ? "false alarm" : "correct no");
+          tip.textContent = "";
+          var a = document.createElement("strong"); a.textContent = p.g.c.toFixed(2);
+          var b = document.createElement("span"); b.textContent = "Grant " + p.g.id + " · real label: " + (p.g.ear ? "ear" : "not ear");
+          var c = document.createElement("span"); c.textContent = "Model says " + (yes ? "yes" : "no") + " → " + state;
+          tip.appendChild(a); tip.appendChild(b); tip.appendChild(c);
+          tip.style.left = Math.min(Math.max(p.x * k, 110), s.getBoundingClientRect().width - 110) + "px";
+          tip.style.top = (p.y - 6) * k + "px";
+          tip.hidden = false;
+        }
+        function hide() { tip.hidden = true; }
+        hit.addEventListener("pointerenter", show); hit.addEventListener("pointerleave", hide);
+        hit.addEventListener("focus", show); hit.addEventListener("blur", hide);
+        return { dot: dot, g: p.g };
+      });
+      var dragging = false;
+      function cAt(e) { var r = s.getBoundingClientRect(); var px = (e.clientX - r.left) * (W / r.width); return (px - m.l) / (W - m.l - m.r); }
+      ov.addEventListener("pointerdown", function (e) { dragging = true; try { ov.setPointerCapture(e.pointerId); } catch (er) {} setCut(cAt(e)); });
+      ov.addEventListener("pointermove", function (e) { if (dragging) setCut(cAt(e)); });
+      ov.addEventListener("pointerup", function () { dragging = false; });
+      ov.addEventListener("pointercancel", function () { dragging = false; });
+      refs = { zone: zone, line: line, lab: lab, dots: dots, noL: noL, yesL: yesL };
+      update();
+    }
+    function update() {
+      var cut = +slider.value;
+      out.textContent = f2(cut);
+      var found = EAR.filter(function (c) { return c >= cut; }).length, fa = NOT.filter(function (c) { return c >= cut; }).length;
+      $("#cut-found").textContent = found + " of 6";
+      $("#cut-missed").textContent = String(6 - found);
+      $("#cut-fa").textContent = String(fa);
+      note.textContent = "At a cutoff of " + f2(cut) + ", the model finds " + found + " of 6 “ear” grants and gives " + fa + " false alarm" + (fa === 1 ? "" : "s") + ".";
+      if (!refs) return;
+      var cx = x(cut);
+      refs.zone.setAttribute("x", cx); refs.zone.setAttribute("width", Math.max(0, W - m.r - cx));
+      refs.line.setAttribute("x1", cx); refs.line.setAttribute("x2", cx);
+      refs.lab.setAttribute("x", Math.min(Math.max(cx, m.l + 40), W - m.r - 40));
+      refs.lab.textContent = "cutoff " + f2(cut);
+      refs.noL.setAttribute("visibility", cx - m.l > 130 ? "visible" : "hidden");
+      refs.yesL.setAttribute("visibility", W - m.r - cx > 130 ? "visible" : "hidden");
+      refs.dots.forEach(function (d) { d.dot.classList.toggle("dimmed", d.g.c < cut); });
+    }
+    slider.addEventListener("input", update);
+    return { build: build, box: box };
+  })();
+
+  /* ---------- Responsive charts ---------- */
+  [noise, cutoff].forEach(function (chart) {
+    var last = -1;
+    function maybe() { var w = Math.round(chart.box.clientWidth); if (w > 0 && w !== last) { last = w; chart.build(); } }
+    if ("ResizeObserver" in window) new ResizeObserver(function () { requestAnimationFrame(maybe); }).observe(chart.box);
+    else window.addEventListener("resize", maybe);
+    chart.build();
+  });
+})();
+</script>

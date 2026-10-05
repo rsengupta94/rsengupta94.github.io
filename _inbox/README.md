@@ -1,7 +1,7 @@
 # Drop folder
 
-Put finished markdown here, then say "new article" or "new project" in Claude
-Code. No file path needed.
+Put finished markdown here, then say "new article", "new playbook" or "new
+project" in Claude Code. No file path needed.
 
 What happens next:
 
@@ -9,9 +9,9 @@ What happens next:
    becomes the URL and cannot change after publishing.
 2. Claude drafts the SEO `description` from your own text and shows it as
    options. You approve that too.
-3. Claude creates the real file in `_posts/` or `_work/` with your prose copied
-   in exactly as written, runs `scripts/validate.rb`, and hands back the preview
-   URL.
+3. Claude creates the real file in `_posts/`, `_playbooks/` or `_work/` with
+   your prose copied in exactly as written, runs `scripts/validate.rb`, and hands
+   back the preview URL.
 4. The original moves to `_inbox/done/` so this folder only ever shows what has
    not been processed.
 

@@ -8,13 +8,20 @@
 # ═══════════════════════════════════════════════════════════════════════
 
 title: Rajarshi Sengupta
-tagline: I build systems that make AI behave as intended.
+tagline: Applied AI PM & Solution Engineer
 description: >-
   PM/Solution Engineer in Applied AI. I ship 0→1 products for teams.
   Research interest in aligning local models through Post-Training, harness, evals.
 
 url: "https://rsengupta94.github.io"
 baseurl: ""
+
+# Filename dates and "now" are both read in this zone. Without it, GitHub's build
+# uses its server clock instead, so a file dated today and pushed before 05:30
+# IST can count as future-dated: an article stays hidden until the next push, and
+# a playbook is listed but 404s. validate.rb's "today" is your Mac's, so the two
+# agree.
+timezone: Asia/Kolkata
 
 # Google Search Console ownership proof — jekyll-seo-tag emits it as a
 # <meta name="google-site-verification"> tag in <head>.
@@ -46,6 +53,11 @@ collections:
   work:
     output: true
     permalink: /work/:name/
+  # Dated like articles: _playbooks/YYYY-MM-DD-slug.md publishes at
+  # /playbooks/<slug>/ — :title drops the date prefix, as it does for posts.
+  playbooks:
+    output: true
+    permalink: /playbooks/:title/
 
 defaults:
   # Site-wide social-share image (Open Graph / LinkedIn / Twitter cards),
@@ -59,6 +71,13 @@ defaults:
   - scope:
       path: ""
       type: posts
+    values:
+      layout: article
+  # Playbooks share the article page design; the layout points the back link at
+  # /playbooks/.
+  - scope:
+      path: ""
+      type: playbooks
     values:
       layout: article
   - scope:
