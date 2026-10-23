@@ -1,0 +1,1663 @@
+---
+layout: playbook
+series: "Classification Fine Tuning Series"
+part: 2
+title: "Classification Fine Tuning Series: Model Decisions"
+description: >-
+  Seven model decisions to make when fine-tuning a text classifier: base model,
+  training scope, score, batch size, learning rate, epochs and loss.
+tag: "Fine-Tuning"
+---
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap">
+<style>
+/* Layout: the same frame as the data decisions page. A sticky rail lists the seven decisions in order on the left; one reading column on the right holds a section per decision. Phones get a jump menu instead of the rail. Blue marks the parts of the model that learn; highlighter yellow marks the item in focus. */
+.playbook {
+  /* Core theme: the portfolio's palette (css/modernist.css). ink-2 and ink-3 are
+     its text colour mixed into the page at 85% and 68%. */
+  --paper: #f3f2f2;
+  --card: #eae9e9;
+  --ink: #201e1d;
+  --ink-2: #403e3d;
+  --ink-3: #646261;
+  --rule: color-mix(in srgb, #201e1d 40%, transparent);
+  --accent: #dd2b0f;
+  --accent-soft: #fff2ef;
+  --accent-on-soft: #dd2b0f;
+  --on-accent: #ffffff;
+  --mark: #ffe45c;
+  --mark-ink: #141821;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --on-s1: #ffffff;
+  --on-s2: #141821;
+  --good: #0e8a3e;
+  --bad: #c9372f;
+  --warn: #9a5a00;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Archivo", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --step--2: 0.75rem;
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.375rem;
+  --step-3: 1.75rem;
+  --step-4: clamp(1.875rem, 4.2vw, 2.5rem);
+  --radius: 0;
+  --bar-h: 58px;
+}
+
+body[data-pf-theme="dark"] .playbook {
+  --paper: #1c1a19; --card: #282525; --ink: #f3f2f2; --ink-2: #d3d2d1; --ink-3: #aeadad; --rule: color-mix(in srgb, #f3f2f2 38%, transparent);
+  --accent: #ec3013; --accent-soft: #402623; --accent-on-soft: #ff6a4d; --on-accent: #ffffff; --mark: #f2d54a; --mark-ink: #141821;
+  --s1: #3987e5; --s2: #d95926; --on-s1: #0e1014; --on-s2: #0e1014;
+  --good: #4cc27a; --bad: #f0736b; --warn: #e3a541;
+  color-scheme: dark;
+}
+
+/* Inside the site layout: undo the site's heading defaults so the page's own
+   rules below decide, as they did when it was a standalone page. */
+.playbook h1, .playbook h2, .playbook h3 { font-family: inherit; font-weight: bold; line-height: inherit; letter-spacing: normal; }
+
+.playbook * { box-sizing: border-box; }
+.playbook [hidden] { display: none !important; }
+.playbook .chart svg text, .playbook .chart svg line, .playbook .chart svg path { pointer-events: none; }
+.playbook {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.playbook a { color: var(--accent); text-underline-offset: 3px; }
+.playbook :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.playbook code, .playbook .mono { font-family: var(--font-mono); font-size: 0.9em; }
+.playbook h1, .playbook h2, .playbook h3 { text-wrap: balance; margin: 0; }
+.playbook p { margin: 0; }
+.playbook ol, .playbook ul { margin: 0; padding: 0; }
+.playbook b, .playbook strong { font-weight: 650; }
+
+/* ---------- Hero ---------- */
+.playbook .pb-hero { padding-block: 0 32px; }
+.playbook .series { font-family: var(--font-display); font-stretch: 112%; font-weight: 700; font-size: clamp(1rem, 3.2vw, 1.75rem); line-height: 1.1; color: var(--accent); }
+.playbook .pb-hero h1 {
+  font-family: var(--font-display); font-stretch: 118%; font-weight: 800;
+  /* Sized to keep "Part 2: Model Decisions" on one line: 56px on a laptop,
+     scaling down with the screen so most phones hold it too. */
+  font-size: clamp(1.5rem, 6.5vw, 3.5rem); line-height: 0.98; letter-spacing: -0.01em; margin-top: 14px;
+}
+.playbook .lead { font-size: var(--step-1); color: var(--ink-2); margin-top: 20px; }
+/* Intro diagram: one training run, with each decision marked where it acts */
+.playbook .run { margin: 36px 0 0; background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; display: grid; gap: 16px; }
+.playbook .run-title { font-weight: 650; }
+.playbook .run-cols { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: start; }
+.playbook .run-col { display: grid; gap: 12px; min-width: 0; }
+.playbook .run-phase { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.playbook .run-arrow { align-self: center; justify-self: center; color: var(--ink-3); font-size: var(--step-2); line-height: 1; }
+.playbook .run-steps { list-style: none; display: grid; gap: 10px; }
+.playbook .run-steps li, .playbook .run-repeat { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 10px; font-size: var(--step--1); line-height: 1.45; }
+.playbook .dn { width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; line-height: 1; background: var(--accent); color: var(--on-accent); text-decoration: none;
+  /* Centre the circle on the first line of its text (line box = font size × 1.45). */
+  margin-top: calc((var(--step--1) * 1.45 - 1.6rem) / 2); }
+.playbook a.dn:hover { opacity: 0.85; }
+.playbook .dn.none { background: none; }
+.playbook .run-repeat { border-top: 1px solid var(--rule); padding-top: 10px; }
+/* Highlighted note at the top of the diagram: says what the numbered circles
+   mean before the reader meets them. The band reaches 12px into the figure's
+   padding so its circle lines up with the circles in the columns below. */
+.playbook .run-note { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 10px; align-items: start; background: var(--accent-soft); padding: 10px 12px; margin-inline: -12px; font-size: var(--step--1); font-weight: 650; line-height: 1.45; }
+
+/* ---------- Glossary (in its own tab) ---------- */
+.playbook .gloss { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 28px; margin: 14px 0 0; }
+.playbook .gloss div { min-width: 0; border-top: 1px solid var(--rule); padding-top: 10px; }
+.playbook .gloss dt { font-weight: 650; }
+.playbook .gloss dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--step--1); line-height: 1.5; }
+
+/* ---------- Sticky bar + tabs ---------- */
+.playbook .bar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--nav-h, 62px)); scroll-margin-top: var(--nav-h, 62px); z-index: 30; background: var(--paper); border-bottom: 1px solid var(--rule); }
+.playbook .bar .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-height: var(--bar-h); padding-block: 6px; }
+.playbook .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.playbook .tab {
+  font: inherit; font-weight: 600; font-size: var(--step--1); color: var(--ink-2); background: transparent;
+  border: 1px solid transparent; border-radius: 999px; padding: 7px 16px; cursor: pointer;
+}
+.playbook .tab:hover { color: var(--ink); }
+.playbook .tab[aria-selected="true"] { color: var(--ink); background: var(--card); border-color: var(--rule); }
+.playbook .jump { display: none; font: inherit; font-size: var(--step--1); color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 8px; max-width: 52vw; }
+
+/* ---------- Learn layout ---------- */
+.playbook .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; padding-block: 8px 72px; }
+.playbook .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--nav-h, 62px) + var(--bar-h) + 24px); align-self: start; max-height: calc(100vh - var(--nav-h, 62px) - var(--bar-h) - 48px); overflow: auto; padding-block: 24px; }
+.playbook .rail p { font-size: var(--step--2); font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin: 18px 0 6px; }
+.playbook .rail ol { list-style: none; }
+.playbook .rail a {
+  display: grid; grid-template-columns: 2.1em 1fr; gap: 4px; padding: 4px 8px; border-radius: 6px;
+  color: var(--ink-2); text-decoration: none; font-size: var(--step--1); line-height: 1.35;
+}
+.playbook .rail a span { font-family: var(--font-mono); color: var(--ink-3); font-size: 0.85em; padding-top: 1px; }
+.playbook .rail a:hover { color: var(--ink); background: var(--card); }
+.playbook .rail a.active { color: var(--ink); background: var(--card); box-shadow: inset 0 0 0 1px var(--rule); }
+.playbook .rail a.active span { color: var(--accent); }
+.playbook main { min-width: 0; max-width: 780px; }
+
+.playbook .decision { padding-block: 40px 44px; border-bottom: 1px solid var(--rule); scroll-margin-top: calc(var(--nav-h, 62px) + var(--bar-h) + 16px); display: grid; gap: 22px; }
+.playbook .d-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.playbook .d-num { font-family: var(--font-mono); font-size: var(--step--1); color: var(--accent); font-weight: 600; }
+.playbook .d-group { font-size: var(--step--2); font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.playbook .decision h2 { font-family: var(--font-display); font-stretch: 112%; font-weight: 760; font-size: var(--step-4); line-height: 1.04; margin-top: -10px; }
+.playbook .oneline { font-size: var(--step-2); line-height: 1.45; }
+
+.playbook .block { display: grid; gap: 12px; }
+.playbook .block-title { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+
+.playbook .fig { margin: 0; background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.playbook .fig-title { font-weight: 650; }
+.playbook .fig figcaption, .playbook .fig .caption { font-size: var(--step--1); color: var(--ink-2); line-height: 1.5; }
+.playbook .illus { font-family: var(--font-mono); font-size: var(--step--2); color: var(--ink-3); border: 1px solid var(--rule); border-radius: 4px; padding: 0 6px; margin-left: 6px; white-space: nowrap; font-weight: 400; }
+
+.playbook .rule { background: var(--accent-soft); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 8px; }
+.playbook .rule-tag { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-on-soft); }
+.playbook .rule ol, .playbook .rule ul { padding-left: 1.3em; display: grid; gap: 4px; }
+
+/* Decision box at the top of a section, and part headings inside a section */
+.playbook .decide { background: var(--card); border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 8px; }
+.playbook .decide-tag { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.playbook .decide-q { font-weight: 650; font-size: var(--step-1); line-height: 1.4; }
+.playbook .decide-list { list-style: none; counter-reset: dq; display: grid; gap: 8px; }
+.playbook .decide-list li { counter-increment: dq; display: grid; grid-template-columns: 1.9em minmax(0, 9.5em) minmax(0, 1fr); gap: 2px 10px; align-items: start; }
+.playbook .decide-list li::before {
+  content: counter(dq); font-family: var(--font-mono); font-size: var(--step--1); font-weight: 600; color: var(--accent);
+  width: 1.75em; height: 1.75em; border: 1px solid var(--accent); border-radius: 50%; display: grid; place-items: center;
+}
+.playbook .decide-list b { font-weight: 650; padding-top: 1px; }
+.playbook .decide-list span { color: var(--ink-2); font-size: var(--step--1); padding-top: 3px; }
+.playbook .part-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-family: var(--font-display); font-stretch: 112%; font-weight: 700; font-size: var(--step-2); line-height: 1.2; padding-top: 18px; border-top: 1px solid var(--rule); scroll-margin-top: calc(var(--nav-h, 62px) + var(--bar-h) + 16px); }
+.playbook .part-num { font-family: var(--font-mono); font-stretch: 100%; font-size: var(--step--1); font-weight: 600; color: var(--accent); }
+.playbook .bridge { color: var(--ink-2); }
+.playbook .bridge::before { content: "→ "; color: var(--accent); font-weight: 700; }
+
+.playbook .opts { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .opts li { min-width: 0; border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--card); }
+.playbook .opts li b { display: block; }
+.playbook .opts li span { color: var(--ink-2); font-size: var(--step--1); }
+.playbook .default { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; color: var(--accent); margin-left: 6px; }
+
+.playbook .qs { list-style: none; counter-reset: q; display: grid; gap: 10px; }
+.playbook .qs li { counter-increment: q; display: grid; grid-template-columns: 1.9em 1fr; gap: 10px; }
+.playbook .qs li::before {
+  content: counter(q); font-family: var(--font-mono); font-size: var(--step--1); font-weight: 600; color: var(--accent);
+  width: 1.75em; height: 1.75em; border: 1px solid var(--accent); border-radius: 50%; display: grid; place-items: center; margin-top: 1px;
+}
+
+.playbook .chip-mark { font-family: var(--font-mono); font-size: 0.92em; background: var(--mark); color: var(--mark-ink); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+
+.playbook .tbl-wrap { overflow-x: auto; }
+.playbook table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+.playbook th, .playbook td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+.playbook thead th { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.playbook tbody th { font-weight: 650; }
+.playbook tbody tr:last-child th, .playbook tbody tr:last-child td { border-bottom: 0; }
+
+.playbook .flow-tag { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Segmented control, buttons, readouts */
+.playbook .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; justify-self: start; }
+.playbook .seg button { font: inherit; font-size: var(--step--1); font-weight: 600; color: var(--ink-2); background: transparent; border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.playbook .seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--rule); }
+.playbook .tt-def { font-weight: 650; }
+.playbook .btn { font: inherit; font-size: var(--step--1); font-weight: 650; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--card); cursor: pointer; }
+.playbook .btn:hover { opacity: 0.88; }
+.playbook .sim-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.playbook .sim-note { font-size: var(--step--1); display: flex; gap: 8px; align-items: baseline; }
+.playbook .readout { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.playbook .big { font-family: var(--font-display); font-stretch: 112%; font-weight: 800; font-size: 3rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.playbook .big-unit { color: var(--ink-2); font-size: var(--step--1); }
+.playbook .control { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; font-size: var(--step--1); }
+.playbook .control output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; min-width: 4.5ch; text-align: right; font-weight: 600; }
+.playbook .control select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 8px; min-width: 0; justify-self: start; }
+.playbook input[type="range"] { width: 100%; accent-color: var(--accent); }
+.playbook .ic { font-weight: 800; font-family: var(--font-mono); }
+.playbook .ic.good { color: var(--good); }
+.playbook .ic.bad { color: var(--bad); }
+.playbook .ic.warn { color: var(--warn); }
+.playbook .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--step--1); color: var(--ink-2); }
+.playbook .legend span { display: inline-flex; align-items: center; gap: 7px; }
+.playbook .sw { width: 10px; height: 10px; border-radius: 50%; background: var(--s1); display: inline-block; }
+.playbook .sw.s2 { background: var(--s2); }
+.playbook .sw.sq { border-radius: 2px; }
+.playbook .sw.soft { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--rule); }
+.playbook .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.playbook .tiles.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.playbook .tile { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; background: var(--paper); min-width: 0; }
+.playbook .tile .t-label { font-size: var(--step--2); color: var(--ink-2); display: flex; gap: 6px; align-items: center; font-weight: 600; }
+.playbook .tile .t-val { font-family: var(--font-display); font-stretch: 112%; font-weight: 800; font-size: 1.75rem; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.playbook .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .two div { border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--card); font-size: var(--step--1); display: grid; gap: 4px; align-content: start; min-width: 0; }
+.playbook .steps { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: s; }
+.playbook .steps li { counter-increment: s; display: flex; gap: 8px; align-items: center; border: 1px solid var(--rule); border-radius: 999px; padding: 6px 14px 6px 6px; background: var(--card); font-size: var(--step--1); min-width: 0; }
+.playbook .steps li::before { content: counter(s); flex: none; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; }
+
+/* Bars (shared) */
+.playbook .bar-track { position: relative; height: 14px; background: var(--paper); border-radius: 4px; }
+.playbook .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--s1); border-radius: 0 4px 4px 0; transition: width 300ms ease; }
+.playbook .bar-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; font-size: var(--step--1); }
+
+/* Charts (shared) */
+.playbook .chart { position: relative; min-width: 0; }
+.playbook .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.playbook .grid { stroke: var(--rule); stroke-width: 1; }
+.playbook .axis { stroke: var(--ink-3); stroke-width: 1; opacity: 0.7; }
+.playbook .tick { fill: var(--ink-3); font: 500 11px var(--font-mono); }
+.playbook .axis-title { fill: var(--ink-2); font: 600 11.5px var(--font-body); }
+.playbook .ref-label { fill: var(--ink-2); font: 600 11.5px var(--font-body); }
+.playbook .zone-label { fill: var(--ink-2); font: 500 11.5px var(--font-body); }
+.playbook .line-s1 { fill: none; stroke: var(--s1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.playbook .line-dim { opacity: 0.4; stroke-dasharray: 4 4; }
+.playbook .dot-s1 { fill: var(--s1); stroke: var(--card); stroke-width: 2; }
+.playbook .dot-s2 { fill: var(--s2); stroke: var(--card); stroke-width: 2; }
+.playbook .dot-small { fill: var(--s1); }
+.playbook .dot-end { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+.playbook .best-ring { fill: none; stroke: var(--good); stroke-width: 2; }
+.playbook .yes-zone { fill: var(--accent-soft); }
+.playbook .unrun { fill: var(--paper); }
+.playbook .cut-line { stroke: var(--accent); stroke-width: 2; }
+.playbook .def-line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.playbook .cut-label { fill: var(--accent); font: 600 12px var(--font-mono); }
+.playbook .dimmed { opacity: 0.32; }
+
+/* Decision tree */
+.playbook .tree, .playbook .tree ul { list-style: none; }
+.playbook .tree { display: grid; gap: 8px; }
+.playbook .tree ul { margin-left: 18px; padding-left: 18px; border-left: 2px solid var(--rule); display: grid; gap: 8px; margin-top: 8px; }
+.playbook .tree li { position: relative; }
+.playbook .tree ul > li::before { content: ""; position: absolute; left: -18px; top: 1.05em; width: 14px; border-top: 2px solid var(--rule); }
+.playbook .node { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: baseline; border: 1px solid var(--rule); border-radius: 8px; padding: 7px 12px; background: var(--paper); font-size: var(--step--1); }
+.playbook .node.end { background: var(--card); font-weight: 650; }
+.playbook .branch { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; color: var(--accent); }
+
+/* What fine-tuning changes, task types */
+.playbook .plain-list { padding-left: 1.2em; display: grid; gap: 6px; }
+.playbook .ft { display: grid; gap: 16px; }
+.playbook .ft-row { display: grid; gap: 6px; }
+.playbook .ft-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.playbook .ft-box { border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; font-size: var(--step--1); background: var(--paper); min-width: 0; }
+.playbook .ft-box.lyr { background: var(--accent-soft); border-color: transparent; }
+.playbook .ft-box.new { background: var(--mark); color: var(--mark-ink); border-color: transparent; font-weight: 650; }
+.playbook .ft-text { font-family: var(--font-mono); font-size: var(--step--2); overflow-wrap: anywhere; }
+.playbook .ft-arrow { color: var(--ink-3); }
+.playbook .conf { display: grid; gap: 6px; min-width: 13em; }
+.playbook .conf-row { display: grid; grid-template-columns: 5.5em minmax(0, 1fr) 2.6em; gap: 8px; align-items: center; font-size: var(--step--2); }
+.playbook .conf.v .conf-row { grid-template-columns: 5.5em minmax(0, 1fr) 2.6em 2.4em; }
+.playbook .conf-row .bar-track { height: 10px; }
+.playbook .conf-yes { color: var(--good); font-weight: 700; }
+.playbook .conf-no { color: var(--ink-3); font-weight: 700; }
+.playbook .conf.has-cut { padding-top: 18px; max-width: 420px; }
+.playbook .bar-cut { position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: var(--accent); }
+.playbook .cut-tag { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+
+/* 1. Memory check */
+.playbook .mbars { display: grid; gap: 8px; }
+.playbook .mbar-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 4.5em; gap: 10px; align-items: center; font-size: var(--step--1); }
+.playbook .mbar-track { position: relative; height: 16px; }
+.playbook .mbar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; transition: width 300ms ease, background 200ms; }
+.playbook .mbar-fill.need { background: var(--s1); }
+.playbook .mbar-fill.need.over { background: var(--bad); }
+.playbook .mbar-fill.have { border: 2px solid var(--ink-2); background: transparent; }
+
+/* 2. Training scope */
+.playbook .scope { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; align-items: start; }
+.playbook .layers { display: grid; gap: 4px; min-width: 0; }
+.playbook .layer { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; font-size: var(--step--1); min-width: 0; transition: background 200ms, color 200ms; }
+.playbook .layer .name { flex: 1; min-width: 0; }
+.playbook .layer .state { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; }
+.playbook .layer.learn { background: var(--s1); color: var(--on-s1); border-color: transparent; }
+.playbook .layer.frozen { background: repeating-linear-gradient(135deg, var(--paper) 0 6px, var(--card) 6px 12px); color: var(--ink-3); }
+.playbook .layer.out { font-weight: 650; }
+.playbook .addon { display: none; font-size: var(--step--2); font-weight: 700; background: var(--s2); color: var(--on-s2); border-radius: 4px; padding: 0 6px; white-space: nowrap; }
+.playbook .layers.lora .layer:not(.out) .addon { display: inline-block; }
+.playbook .layer-in { text-align: center; font-size: var(--step--2); color: var(--ink-3); padding-top: 2px; }
+.playbook .scope-info { display: grid; gap: 14px; min-width: 0; }
+.playbook .meters { display: grid; gap: 10px; }
+.playbook .meter { display: grid; grid-template-columns: 7em auto minmax(0, 1fr); gap: 4px 10px; align-items: center; font-size: var(--step--1); }
+.playbook .meter > b { font-size: var(--step--2); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.playbook .pips { display: flex; gap: 3px; }
+.playbook .pip { width: 20px; height: 10px; border-radius: 3px; background: var(--rule); transition: background 200ms; }
+.playbook .pip.on { background: var(--accent); }
+.playbook .m-word { color: var(--ink-2); min-width: 0; }
+
+/* 3. Headline score */
+.playbook .rp-dots { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding-block: 4px; }
+.playbook .rp-key { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.playbook .rp-key > span { display: inline-flex; align-items: center; gap: 6px; }
+.playbook .rp-key .dot { width: 10px; height: 10px; }
+.playbook .formulas .look { color: var(--ink); font-weight: 600; }
+.playbook .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; }
+.playbook .dot.found { background: var(--s1); }
+.playbook .dot.missed { border: 2px solid var(--s1); }
+.playbook .dot.fa { background: var(--s2); }
+.playbook .formulas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.playbook .formulas div { border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; background: var(--paper); display: grid; gap: 6px; align-content: start; font-size: var(--step--1); min-width: 0; }
+.playbook .formulas span { color: var(--ink-2); }
+.playbook .formulas code { font-size: var(--step--2); color: var(--ink); overflow-wrap: anywhere; }
+.playbook .mm { display: grid; gap: 10px; }
+.playbook .mm-row { display: grid; grid-template-columns: 7.5em 9em minmax(0, 1fr) 3.4em; gap: 10px; align-items: center; font-size: var(--step--1); }
+.playbook .mm-n { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.playbook .mm-row.rare .bar-fill { background: var(--s2); }
+
+/* 4. Batch size */
+.playbook .loop-data { display: flex; flex-wrap: wrap; gap: 5px; }
+.playbook .ex { width: 22px; height: 22px; border-radius: 4px; background: var(--s1); transition: background 200ms, opacity 200ms, transform 200ms; }
+.playbook .ex.in-batch { background: var(--mark); transform: translateY(-4px); box-shadow: 0 0 0 1px var(--ink); }
+.playbook .ex.used { opacity: 0.22; }
+.playbook .loop-steps { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.playbook .loop-steps li[data-step] { border: 1px solid var(--rule); border-radius: 999px; padding: 6px 14px; background: var(--card); font-size: var(--step--1); font-weight: 600; color: var(--ink-2); transition: background 200ms, color 200ms; }
+.playbook .loop-steps li[data-step].on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.playbook .loop-steps .arr { color: var(--ink-3); }
+.playbook .accum { display: grid; gap: 16px; }
+.playbook .acc-row { display: grid; grid-template-columns: 12em minmax(0, 1fr); gap: 6px 14px; align-items: center; }
+.playbook .acc-row > b { font-size: var(--step--1); }
+.playbook .acc-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.playbook .cells { display: grid; grid-template-columns: repeat(8, 9px); gap: 2px; padding: 4px; border: 1px solid var(--rule); border-radius: 5px; background: var(--paper); }
+.playbook .cells i { width: 9px; height: 9px; border-radius: 2px; background: var(--s1); display: block; }
+.playbook .acc-op { font-size: var(--step--2); color: var(--ink-3); font-weight: 650; }
+.playbook .upd { font-family: var(--font-mono); font-size: var(--step--2); font-weight: 600; background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.playbook .acc-meta { grid-column: 2; font-size: var(--step--2); color: var(--ink-2); }
+
+/* 5. Learning rate */
+.playbook .multiples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.playbook .mini { display: grid; gap: 6px; align-content: start; min-width: 0; font-size: var(--step--1); }
+.playbook .mini svg { display: block; width: 100%; height: auto; background: var(--paper); border-radius: 6px; }
+.playbook .mini span { color: var(--ink-2); }
+.playbook .valley { fill: none; stroke: var(--ink-3); stroke-width: 1.5; }
+.playbook .step-line { stroke: var(--s1); stroke-width: 1.5; }
+.playbook .step-line.bad { stroke: var(--bad); }
+.playbook .dot-start { fill: var(--ink-2); }
+.playbook .dot-step { fill: var(--s1); }
+.playbook .dot-bad { fill: var(--bad); }
+.playbook .mini-label { fill: var(--ink-2); font: 600 10px var(--font-body); }
+.playbook .spark { display: block; width: 100px; height: 30px; }
+.playbook .spark svg { display: block; width: 100px; height: 30px; }
+.playbook .spark-line { fill: none; stroke: var(--s1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.playbook .signs td:first-child { width: 116px; }
+
+/* 6. Epochs */
+.playbook .toggles { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; }
+.playbook .check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--step--1); font-weight: 600; cursor: pointer; }
+.playbook .check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+
+/* 7. Loss */
+.playbook .wbars { display: grid; gap: 8px; }
+.playbook .wbar-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 4.5em; gap: 10px; align-items: center; font-size: var(--step--1); }
+.playbook .wbar-row .bar-fill.full { background: var(--s2); }
+.playbook .wscale { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 4.5em; gap: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.playbook .wscale > span:nth-child(2) { display: flex; justify-content: space-between; }
+
+/* Fixes + required steps */
+.playbook .ladders { display: grid; gap: 18px; }
+.playbook .ladder { display: grid; gap: 8px; }
+.playbook .ladder > b { font-size: var(--step-0); }
+.playbook .rules-list { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.playbook .rules-list li { display: grid; grid-template-columns: 1.4em 1fr; gap: 8px; padding: 12px 14px; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; font-size: var(--step--1); min-width: 0; }
+.playbook .rules-list li::before { content: "✓"; color: var(--good); font-weight: 800; }
+
+/* Cheat sheet */
+.playbook .cheat { padding-block: 40px 72px; display: grid; gap: 20px; }
+.playbook .cheat h2 { font-family: var(--font-display); font-stretch: 112%; font-weight: 760; font-size: var(--step-4); }
+.playbook .matrix-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius); overflow-x: auto; }
+.playbook .matrix { min-width: 960px; }
+.playbook .matrix td, .playbook .matrix th { padding: 12px 14px; }
+.playbook .matrix .num { font-family: var(--font-mono); color: var(--accent); font-weight: 600; white-space: nowrap; }
+.playbook .matrix b.def { color: var(--accent); }
+/* The rule sits on the text, not the box: the site's .wrap padding is wider
+   than the page's own was, so a rule on the box overhangs the column. */
+.playbook footer { padding-block: 0 48px; font-size: var(--step--1); color: var(--ink-2); }
+.playbook footer p { border-top: 1px solid var(--rule); padding-top: 28px; }
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 960px) {
+  .playbook .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .playbook .rail { display: none; }
+  .playbook .jump { display: block; }
+  .playbook .run-cols { grid-template-columns: minmax(0, 1fr); }
+  .playbook .run-arrow { transform: rotate(90deg); }
+}
+@media (max-width: 640px) {
+  .playbook .gloss, .playbook .opts, .playbook .two, .playbook .rules-list, .playbook .formulas, .playbook .multiples, .playbook .scope { grid-template-columns: minmax(0, 1fr); }
+  .playbook .decide-list li { grid-template-columns: 1.9em minmax(0, 1fr); }
+  .playbook .decide-list li span { grid-column: 2; padding-top: 0; }
+  .playbook .tiles { grid-template-columns: minmax(0, 1fr); }
+  .playbook .tiles.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .playbook .tiles.keep3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .playbook .acc-row { grid-template-columns: minmax(0, 1fr); }
+  .playbook .acc-meta { grid-column: auto; }
+  .playbook .mm-row { grid-template-columns: minmax(0, 1fr) 3.4em; }
+  .playbook .mm-row .mm-n { grid-column: 1 / -1; grid-row: 2; font-size: var(--step--2); }
+  .playbook .mm-row .bar-track { grid-column: 1; grid-row: 3; }
+  .playbook .mm-row .bar-val { grid-column: 2; grid-row: 3; }
+  .playbook .mbar-row, .playbook .wbar-row, .playbook .wscale { grid-template-columns: 6em minmax(0, 1fr) 4em; gap: 8px; }
+  .playbook .meter { grid-template-columns: 6.2em auto; }
+  .playbook .meter .m-word { grid-column: 1 / -1; font-size: var(--step--2); }
+  .playbook .tile .t-val { font-size: 1.45rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .playbook *, .playbook *::before, .playbook *::after { transition: none !important; animation: none !important; }
+}
+
+/* Portfolio theme: square corners on cards, boxes and controls, as on the rest
+   of the site. Data marks inside figures (dots, swatches, bars, example squares,
+   label chips) and the round number markers keep their shape. */
+.playbook .tab, .playbook .jump, .playbook .rail a, .playbook .illus, .playbook .opts li, .playbook .seg, .playbook .seg button, .playbook .btn, .playbook .control select, .playbook .tile, .playbook .two div, .playbook .steps li, .playbook .loop-steps li[data-step], .playbook .node, .playbook .ft-box, .playbook .layer, .playbook .formulas div, .playbook .cells, .playbook .mini svg, .playbook .upd, .playbook .rules-list li, .playbook :focus-visible { border-radius: 0; }
+</style>
+
+<header class="pb-hero wrap">
+  <p class="series">Classification Fine Tuning Series</p>
+  <h1>Part 2: Model Decisions</h1>
+  <p class="lead">Fine-tuning trains a model that already knows language to do one task. In text classification, the model reads a text and gives it one or more labels from a fixed list. After you prepare the data, you make seven decisions about the model and how it trains. This page explains each decision. Make the decisions in order, because an early decision can change a later one. You need the last decision only if the first training run misses rare labels.</p>
+  <figure class="run" aria-labelledby="run-t">
+    <p class="run-title" id="run-t">One training run, from start to end</p>
+    <p class="run-note"><span class="dn" aria-hidden="true">3</span><span>The number next to each step refers to the section in which it is discussed.</span></p>
+    <div class="run-cols">
+      <div class="run-col">
+        <p class="run-phase">Before training</p>
+        <ol class="run-steps">
+          <li><a class="dn" href="#d1" data-nav aria-label="Go to section 1">1</a><span><b>Base model.</b> Start from a pretrained model. It gets a new output layer that gives a confidence for each label.</span></li>
+          <li><a class="dn" href="#d2" data-nav aria-label="Go to section 2">2</a><span><b>Training scope.</b> Select which weights can change.</span></li>
+          <li><a class="dn" href="#d3" data-nav aria-label="Go to section 3">3</a><span><b>Headline score.</b> Select the number that judges the model.</span></li>
+        </ol>
+      </div>
+      <span class="run-arrow" aria-hidden="true">→</span>
+      <div class="run-col">
+        <p class="run-phase">Training loop</p>
+        <ol class="run-steps">
+          <li><a class="dn" href="#d4" data-nav aria-label="Go to section 4">4</a><span>Read a <b>batch</b> of training examples.</span></li>
+          <li><span class="dn none" aria-hidden="true"></span><span>Measure the <b>loss</b>. It shows how wrong the answers are.</span></li>
+          <li><a class="dn" href="#d5" data-nav aria-label="Go to section 5">5</a><span><b>Update</b> the weights to make the loss smaller. The <b>learning rate</b> sets the size of each update.</span></li>
+        </ol>
+        <p class="run-repeat"><a class="dn" href="#d6" data-nav aria-label="Go to section 6">6</a><span>↻ Repeat. One pass through all the training examples is one <b>epoch</b>.</span></p>
+      </div>
+      <span class="run-arrow" aria-hidden="true">→</span>
+      <div class="run-col">
+        <p class="run-phase">After training</p>
+        <ol class="run-steps">
+          <li><a class="dn" href="#d3" data-nav aria-label="Go to section 3">3</a><span>Select a <b>cutoff</b> for each label. If a confidence is above the cutoff, the answer is “yes”.</span></li>
+          <li><a class="dn" href="#d7" data-nav aria-label="Go to section 7">7</a><span>Do the rare labels score well enough? If not, change the loss and train again.</span></li>
+          <li><a class="dn" href="#d3" data-nav aria-label="Go to section 3">3</a><span>Measure the final model one time on the <b>test set</b>. This is the score that you report.</span></li>
+        </ol>
+      </div>
+    </div>
+  </figure>
+</header>
+
+<div class="bar" id="views">
+  <div class="wrap">
+    <div class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-learn" data-view="learn" aria-controls="view-learn" aria-selected="true">Learn</button>
+      <button class="tab" role="tab" id="tab-cheat" data-view="cheat" aria-controls="view-cheat" aria-selected="false">Cheat sheet</button>
+      <button class="tab" role="tab" id="tab-glossary" data-view="glossary" aria-controls="view-glossary" aria-selected="false">Glossary</button>
+    </div>
+    <select class="jump" id="jump" aria-label="Go to a decision">
+      <option value="d1">1 · Base model</option>
+      <option value="d2">2 · Training scope</option>
+      <option value="d3">3 · Headline score</option>
+      <option value="d4">4 · Batch size</option>
+      <option value="d5">5 · Learning rate</option>
+      <option value="d6">6 · Epochs</option>
+      <option value="d7">7 · Loss</option>
+      <option value="other">If a run fails</option>
+      <option value="musts">Required steps</option>
+    </select>
+  </div>
+</div>
+
+<div id="view-learn" role="tabpanel" aria-labelledby="tab-learn">
+<div class="wrap layout">
+  <nav class="rail" aria-label="Decisions">
+    <ol>
+      <li><a href="#d1" data-nav><span>01</span>Base model</a></li>
+      <li><a href="#d2" data-nav><span>02</span>Training scope</a></li>
+      <li><a href="#d3" data-nav><span>03</span>Headline score</a></li>
+      <li><a href="#d4" data-nav><span>04</span>Batch size</a></li>
+      <li><a href="#d5" data-nav><span>05</span>Learning rate</a></li>
+      <li><a href="#d6" data-nav><span>06</span>Epochs</a></li>
+      <li><a href="#d7" data-nav><span>07</span>Loss</a></li>
+    </ol>
+    <p>Always</p>
+    <ol>
+      <li><a href="#other" data-nav><span>+</span>If a run fails</a></li>
+      <li><a href="#musts" data-nav><span>✓</span>Required steps</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section class="decision" id="d1" aria-labelledby="d1-t">
+      <div class="d-head"><span class="d-num">01</span></div>
+      <h2 id="d1-t">Base model</h2>
+      <p class="oneline">The base model is the pretrained model that you start from. Your choice sets what the model already knows, how fast it trains, and how much memory it needs.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">Which pretrained model do you start from?</p>
+        <p>You select the size, the base or chat version, and a general or a domain model. Start with the smallest model that passes the five checks in this section.</p>
+      </div>
+        <p class="prose">A classifier must give labels. Thus, fine-tuning removes the next-word output and adds a new <b>output layer</b>. The new output layer gives a <b>confidence</b> from 0 to 1 for each label. At first, the new layer has random weights, so its confidences are random.</p>
+        <figure class="fig">
+          <p class="fig-title">What fine-tuning changes</p>
+          <div class="ft" role="img" aria-label="Top row: the pretrained model reads the text “Please refund my last” and its next-word output gives “payment”. Bottom row: your classifier reads “Please refund my last payment.” with the same layers, and its new output layer gives billing 0.81, shipping 0.04 and account 0.02.">
+            <div class="ft-row">
+              <span class="flow-tag">Pretrained model</span>
+              <div class="ft-flow">
+                <span class="ft-box ft-text">“Please refund my last”</span><span class="ft-arrow" aria-hidden="true">→</span>
+                <span class="ft-box lyr">Layers</span><span class="ft-arrow" aria-hidden="true">→</span>
+                <span class="ft-box">Next-word output</span><span class="ft-arrow" aria-hidden="true">→</span>
+                <span class="ft-text">“payment”</span>
+              </div>
+            </div>
+            <div class="ft-row">
+              <span class="flow-tag">Your classifier</span>
+              <div class="ft-flow">
+                <span class="ft-box ft-text">“Please refund my last payment.”</span><span class="ft-arrow" aria-hidden="true">→</span>
+                <span class="ft-box lyr">Same layers, kept</span><span class="ft-arrow" aria-hidden="true">→</span>
+                <span class="ft-box new">New output layer</span><span class="ft-arrow" aria-hidden="true">→</span>
+                <span class="conf">
+                  <span class="conf-row"><span>billing</span><span class="bar-track"><span class="bar-fill" style="width:81%"></span></span><span class="bar-val">0.81</span></span>
+                  <span class="conf-row"><span>shipping</span><span class="bar-track"><span class="bar-fill" style="width:4%"></span></span><span class="bar-val">0.04</span></span>
+                  <span class="conf-row"><span>account</span><span class="bar-track"><span class="bar-fill" style="width:2%"></span></span><span class="bar-val">0.02</span></span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <figcaption>The layers stay. Only the output changes. The numbers are the confidence of the model for each label.</figcaption>
+        </figure>
+      <div class="block">
+        <h3 class="block-title">What you select</h3>
+        <ul class="opts">
+          <li><b>Size</b><span>The size is the number of weights. B means billion, so a 1B model has one billion weights. A larger model usually gets a better score, but it is slower and needs more memory.</span></li>
+          <li><b>Base or chat version <span class="default">DEFAULT: BASE</span></b><span>The base version has only pretraining. The chat version has extra training to follow instructions and to write answers. A classifier does not write answers, because the new output layer gives confidences. Thus, the chat training gives little benefit.</span></li>
+          <li><b>General or domain</b><span>Some models learn from the text of one field, for example medical text. A domain model can do better than a general model of the same size.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Checks that the model must pass</h3>
+        <ol class="qs">
+          <li><span>Is the context limit of the model at least as large as your length limit? The context limit is the largest number of tokens (parts of words) that the model can read. Your length limit is the largest number of tokens that you let it read from each text.</span></li>
+          <li><span>Did the model learn from text in the language of your texts?</span></li>
+          <li><span>Does the model load as a classifier in your library? In Hugging Face, the class is <code>AutoModelForSequenceClassification</code>.</span></li>
+          <li><span>Does the model fit in the memory of your computer? Use the check below.</span></li>
+          <li><span>Does the licence let you publish a model that you build from it?</span></li>
+        </ol>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Does the whole model fit in memory?</p>
+        <div class="control">
+          <label for="mem-size">Model size</label>
+          <input type="range" id="mem-size" min="0" max="7" step="1" value="3">
+          <output id="mem-size-out" for="mem-size">1B</output>
+        </div>
+        <div class="control">
+          <label for="mem-gb">Your memory</label>
+          <select id="mem-gb">
+            <option value="8">8 GB</option>
+            <option value="16">16 GB</option>
+            <option value="24" selected>24 GB</option>
+            <option value="32">32 GB</option>
+            <option value="36">36 GB</option>
+            <option value="48">48 GB</option>
+            <option value="64">64 GB</option>
+            <option value="80">80 GB</option>
+          </select>
+          <span></span>
+        </div>
+        <div class="readout"><span class="big" id="mem-big">16 GB</span><span class="big-unit">of memory to train the whole model</span></div>
+        <div class="mbars" aria-hidden="true">
+          <div class="mbar-row"><span>Needed</span><span class="mbar-track"><span class="mbar-fill need" id="mem-need"></span></span><span class="bar-val" id="mem-need-v"></span></div>
+          <div class="mbar-row"><span>Your memory</span><span class="mbar-track"><span class="mbar-fill have" id="mem-have"></span></span><span class="bar-val" id="mem-have-v"></span></div>
+        </div>
+        <p class="sim-note" id="mem-note" aria-live="polite"></p>
+        <figcaption>During training, the GPU keeps four numbers for each weight. These are the weight, its calculated change, and two extra numbers for the optimizer. The optimizer is the part of the trainer that makes the updates. Together, these numbers take approximately 16 bytes for each weight. The examples in each batch need more memory on top of this. <span id="mem-calc">For this model, 1B weights × 16 bytes ≈ 16 GB.</span></figcaption>
+      </figure>
+      <div class="rule">
+        <p class="rule-tag">Rule</p>
+        <p>Move to a larger model only if the smaller model stops improving.</p>
+      </div>
+      <p class="bridge">Next, decide which weights of this model can change during training.</p>
+    </section>
+
+    <section class="decision" id="d2" aria-labelledby="d2-t">
+      <div class="d-head"><span class="d-num">02</span></div>
+      <h2 id="d2-t">Training scope</h2>
+      <p class="oneline">The training scope is the set of weights that can change during training. The other weights are frozen, which means that they keep their pretrained values.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">Which weights can change during training?</p>
+        <p>The options are the whole model, LoRA, the top layers, or the output layer only. Train the whole model if it fits in memory and is fast enough. If not, the limit that stops you selects the option.</p>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Select a training scope to see which weights learn</p>
+        <div class="seg" role="group" aria-label="Training scope">
+          <button type="button" data-scope="whole" aria-pressed="true">Whole model</button>
+          <button type="button" data-scope="lora" aria-pressed="false">LoRA</button>
+          <button type="button" data-scope="top" aria-pressed="false">Top layers</button>
+          <button type="button" data-scope="head" aria-pressed="false">Output layer only</button>
+        </div>
+        <div class="scope">
+          <div class="layers" id="layers">
+            <div class="layer out" data-k="out"><span class="name">Output layer</span><span class="state">learns</span></div>
+            <div class="layer" data-k="6"><span class="name">Layer 6</span><span class="addon">new block learns</span><span class="state">learns</span></div>
+            <div class="layer" data-k="5"><span class="name">Layer 5</span><span class="addon">new block learns</span><span class="state">learns</span></div>
+            <div class="layer" data-k="4"><span class="name">Layer 4</span><span class="addon">new block learns</span><span class="state">learns</span></div>
+            <div class="layer" data-k="3"><span class="name">Layer 3</span><span class="addon">new block learns</span><span class="state">learns</span></div>
+            <div class="layer" data-k="2"><span class="name">Layer 2</span><span class="addon">new block learns</span><span class="state">learns</span></div>
+            <div class="layer" data-k="1"><span class="name">Layer 1</span><span class="addon">new block learns</span><span class="state">learns</span></div>
+            <div class="layer-in">↑ text</div>
+          </div>
+          <div class="scope-info" aria-live="polite">
+            <p class="tt-def" id="sc-what"></p>
+            <p><span class="flow-tag">Weights that learn</span><br><span id="sc-share"></span></p>
+            <div class="meters">
+              <div class="meter" id="m-mem"><b>Memory</b><span class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span><span class="m-word"></span></div>
+              <div class="meter" id="m-speed"><b>Speed</b><span class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span><span class="m-word"></span></div>
+              <div class="meter" id="m-score"><b>Usual score</b><span class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span><span class="m-word"></span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>If more weights can change, the model can adapt more to your task. But it also needs more memory and more time. The bars put the four options in order. They do not show exact sizes.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <p class="prose">Find out what stops you from training the whole model. To find out, do a <b>timing run</b>. Train for a few minutes with the settings that you plan to use. The run shows how long training takes and how much memory it needs. It also finds errors early. Include the longest texts, because they need the most memory. Then use this tree.</p>
+        <figure class="fig">
+          <ul class="tree" aria-label="Decision tree for the training scope">
+            <li><span class="node">Does the whole model fit in memory?</span>
+              <ul>
+                <li><span class="branch">YES</span> <span class="node">Is it fast enough?</span>
+                  <ul>
+                    <li><span class="branch">YES</span> <span class="node end">Train the whole model. It usually gets the best score.</span></li>
+                    <li><span class="branch">NO</span> <span class="node end">Train the top layers.</span></li>
+                  </ul>
+                </li>
+                <li><span class="branch">NO</span> <span class="node">Is time also a limit?</span>
+                  <ul>
+                    <li><span class="branch">NO</span> <span class="node end">Use LoRA. It gets a score close to the whole model with much less memory.</span></li>
+                    <li><span class="branch">YES</span> <span class="node end">Train the top layers, or use a smaller model.</span></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </figure>
+        <div class="two">
+          <div><b>Why LoRA does not save much time</b><span>To make an update, the trainer calculates the changes from the output back through the layers. The LoRA blocks are in every layer, so this calculation must still go through the whole model. With top layers, the calculation stops near the top. It is the only option that saves a lot of time, and the cost is a lower score.</span></div>
+          <div><b>Why the output layer alone gets the lowest score</b><span>The pretrained model learned to predict the next word. It did not learn to summarize a whole text. If all other weights are frozen, the output layer can only use what the model already gives it. Use this option only for a quick first test.</span></div>
+        </div>
+      </div>
+      <div class="rule">
+        <p class="rule-tag">Required step</p>
+        <p>If you freeze weights yourself, unlock the output layer again. In Hugging Face, the command that freezes all weights also freezes the new output layer. For all options, print the share of weights that learn, to make sure that the setting is correct.</p>
+      </div>
+      <p class="bridge">Next, decide how you judge the model. You must do this before training, because the trainer uses the score to select the best checkpoint.</p>
+    </section>
+
+
+    <section class="decision" id="d3" aria-labelledby="d3-t">
+      <div class="d-head"><span class="d-num">03</span></div>
+      <h2 id="d3-t">Headline score</h2>
+      <p class="oneline">The headline score is the one number that judges the model, and you report its value on the test set at the end. During training, the trainer measures it on the validation set. The trainer uses this validation score to select the best checkpoint.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">Which number judges the model, and when does the model say “yes”?</p>
+        <p>You decide three things before training:</p>
+        <ol class="decide-list">
+          <li><b>The score</b><span>F1 on the positive label, micro-F1 or macro-F1</span></li>
+          <li><b>The bar</b><span>The lowest recall that you accept for rare labels</span></li>
+          <li><b>The cutoff rule</b><span>Best F1 or recall first (binary and multi-label tasks only)</span></li>
+        </ol>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Recall and precision for one label<span class="illus">Illustration</span></p>
+        <p class="caption">In this example, a support team gets 20 emails. The model checks each email for the label “billing”. A person already labelled every email, so the correct answers are known.</p>
+        <p>Of these emails, 10 are about billing. These 10 emails are the <b>cases</b> of the label. The model says “billing” for 8 emails. Of those 8 emails, 6 are correct and 2 are false alarms.</p>
+        <div class="formulas">
+          <div><b>Recall</b><span>The share of the real cases that the model finds.</span><span class="look">Look only at the 10 billing emails.</span>
+            <span class="rp-dots" role="img" aria-label="10 dots: 6 filled for the emails that the model found, 4 hollow for the emails that it missed."><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot missed"></i><i class="dot missed"></i><i class="dot missed"></i><i class="dot missed"></i></span>
+            <span class="rp-key"><span><i class="dot found"></i>6 found</span><span><i class="dot missed"></i>4 missed</span></span>
+            <code>6 ÷ 10 = 60%</code>
+            <span>Low recall means that the model misses cases.</span></div>
+          <div><b>Precision</b><span>The share of the model's “yes” answers that are correct.</span><span class="look">Look only at the 8 emails that the model marked as “billing”.</span>
+            <span class="rp-dots" role="img" aria-label="8 dots: 6 blue for the correct answers, 2 orange for the false alarms."><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot found"></i><i class="dot fa"></i><i class="dot fa"></i></span>
+            <span class="rp-key"><span><i class="dot found"></i>6 correct</span><span><i class="dot fa"></i>2 false alarms</span></span>
+            <code>6 ÷ 8 = 75%</code>
+            <span>Low precision means that the model gives false alarms.</span></div>
+          <div><b>F1</b><span>F1 combines recall and precision into one score. It is high only if both are high.</span><code>60% and 75% give 67%</code></div>
+        </div>
+        <figcaption>The same 6 emails are in both pictures. The other 8 emails are not about billing, and the model correctly said “no”. Neither score counts them.</figcaption>
+      </figure>
+      <p>Accuracy is the share of all answers that are correct. It is a simpler score, but it can hide a rare label. For example, if 2 of 100 emails are urgent, a model that always says “not urgent” gets 98% accuracy. But it finds no urgent emails.</p>
+      <div class="block">
+        <h3 class="block-title">Task types</h3>
+        <p class="prose">The task type is set when you prepare the data. It decides how many scores you get.</p>
+        <ul class="plain-list">
+          <li><b>Binary task.</b> The text gets one of two labels, for example “urgent” or “not urgent”.</li>
+          <li><b>Multi-class task.</b> The text gets exactly one label from three or more.</li>
+          <li><b>Multi-label task.</b> The text can get any number of labels.</li>
+        </ul>
+      </div>
+      <h3 class="part-title" id="d3-score"><span class="part-num">Part 1</span>The score</h3>
+      <div class="block">
+        <p class="prose">A binary task has one label that you want to find. This is the positive label. Its F1 is the headline score.</p>
+        <p class="prose">A multi-class or multi-label task has a recall, a precision and an F1 for each label. To get one headline number, you combine them. There are two methods:</p>
+        <ul class="opts">
+          <li><b>Micro-F1</b><span>Add together the found cases, the missed cases and the false alarms of all labels. Then calculate one F1 from these totals. Each case counts the same, so the labels with many cases decide the score.</span></li>
+          <li><b>Macro-F1</b><span>Calculate the F1 of each label. Then calculate the average of these values. Each label counts the same, so a rare label counts as much as a common label.</span></li>
+        </ul>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">See how a rare label changes micro-F1 and macro-F1<span class="illus">Illustration</span></p>
+        <div class="mm">
+          <div class="mm-row"><span>Common label</span><span class="mm-n">found 810 of 900</span><span class="bar-track"><span class="bar-fill" style="width:90%"></span></span><span class="bar-val">90%</span></div>
+          <div class="mm-row"><span>Medium label</span><span class="mm-n">found 72 of 90</span><span class="bar-track"><span class="bar-fill" style="width:80%"></span></span><span class="bar-val">80%</span></div>
+          <div class="mm-row rare"><span>Rare label</span><span class="mm-n">found <span id="mm-rare-found">2</span> of 10</span><span class="bar-track"><span class="bar-fill" id="mm-rare-bar" style="width:20%"></span></span><span class="bar-val" id="mm-rare-val">20%</span></div>
+        </div>
+        <div class="control">
+          <label for="mm-k">Rare cases found</label>
+          <input type="range" id="mm-k" min="0" max="10" step="1" value="2">
+          <output id="mm-k-out" for="mm-k">2 of 10</output>
+        </div>
+        <div class="tiles two-up" aria-live="polite">
+          <div class="tile"><span class="t-label">Micro-F1</span><span class="t-val" id="mm-micro">88.4%</span></div>
+          <div class="tile"><span class="t-label">Macro-F1</span><span class="t-val" id="mm-macro">63.3%</span></div>
+        </div>
+        <figcaption>In this example, the three labels have 1,000 cases in total. Move the slider to find more rare cases. Each extra rare case adds 0.1 points to micro-F1, because it is 1 case of 1,000. It adds 3.3 points to macro-F1, because the rare label is 1 of 3 labels. To make the calculation simple, each label has as many false alarms as misses, so its F1 is equal to the share that it finds.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span>Is the task binary? If so, use the F1 on the positive label.</span></li>
+          <li><span>Must the model do well on every label, including the rare labels? If so, use macro-F1.</span></li>
+          <li><span>Do you need the most correct answers overall? If so, use micro-F1. In a multi-class task, micro-F1 is equal to accuracy.</span></li>
+        </ol>
+        <p class="after">Select the score before training, and do not change it later.</p>
+      </div>
+      <h3 class="part-title" id="d3-bar"><span class="part-num">Part 2</span>The bar</h3>
+      <div class="block">
+        <p class="prose">The <b>bar</b> is the lowest recall that you accept for each rare label. You can also set the highest number of false alarms that you accept. For example, “find at least 5 of every 6 urgent emails.”</p>
+        <p class="prose">Set the bar before you see any results, so that the results cannot change it.</p>
+      </div>
+      <h3 class="part-title" id="d3-cut"><span class="part-num">Part 3</span>The cutoff (binary and multi-label tasks)</h3>
+      <p class="prose">The model gives a confidence from 0 to 1 for each label. The <b>cutoff</b> changes this confidence into a yes or a no. If the confidence is above the cutoff, the answer is “yes”. The default cutoff is 0.5.</p>
+      <figure class="fig">
+        <p class="caption"><span class="flow-tag">Multi-label task</span> <span class="ft-text">“My refund has not arrived, and the box was damaged.”</span></p>
+        <div class="conf v has-cut" role="img" aria-label="Billing has a confidence of 0.81 and shipping 0.62. Both are above the cutoff of 0.5, so both are yes. Account has 0.12, which is below the cutoff, so it is no.">
+          <span class="conf-row"><span>billing</span><span class="bar-track"><span class="bar-fill" style="width:81%"></span><span class="bar-cut"></span><span class="cut-tag">cutoff 0.5</span></span><span class="bar-val">0.81</span><span class="conf-yes">yes</span></span>
+          <span class="conf-row"><span>shipping</span><span class="bar-track"><span class="bar-fill" style="width:62%"></span><span class="bar-cut"></span></span><span class="bar-val">0.62</span><span class="conf-yes">yes</span></span>
+          <span class="conf-row"><span>account</span><span class="bar-track"><span class="bar-fill" style="width:12%"></span><span class="bar-cut"></span></span><span class="bar-val">0.12</span><span class="conf-no">no</span></span>
+        </div>
+        <figcaption>In this multi-label task, the text gets two labels, billing and shipping.</figcaption>
+      </figure>
+      <p class="prose">In a multi-class task, the label with the highest confidence wins. Thus, there is no cutoff, and you can skip this part.</p>
+      <div class="block">
+        <h3 class="block-title">How to select the cutoff</h3>
+        <p class="prose">The cutoff changes the answers of the model. It does not change the model. If you lower the cutoff, the model says “yes” more often. It finds more real cases, so recall increases. But it also gives more false alarms, so precision decreases. If you raise the cutoff, the opposite occurs.</p>
+        <p class="prose">During training, the trainer uses the default cutoff of 0.5. After training, select a better cutoff for each label on the validation set. You do not need to train again, because the model does not change. There are two rules:</p>
+        <ul class="opts">
+          <li><b>Best F1</b><span>Use the cutoff that gives the highest F1. This cutoff balances misses and false alarms. Use this rule if a miss and a false alarm cost the same.</span></li>
+          <li><b>Recall first</b><span>Use the highest cutoff that still meets the bar. A higher cutoff gives fewer false alarms. Thus, the highest cutoff meets the bar with the fewest false alarms. Use this rule if a miss costs more than a false alarm.</span></li>
+        </ul>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">Move the cutoff, or use one of the two rules<span class="illus">Illustration</span></p>
+        <div class="control">
+          <label for="rule-n">Cutoff</label>
+          <input type="range" id="rule-n" min="0.05" max="0.95" step="0.01" value="0.42">
+          <output id="rule-n-out" for="rule-n">0.42</output>
+        </div>
+        <div class="seg" role="group" aria-label="Set the cutoff with a rule">
+          <button type="button" data-rule="def" aria-pressed="false">Default 0.5</button>
+          <button type="button" data-rule="f1" aria-pressed="true">Best F1</button>
+          <button type="button" data-rule="recall" aria-pressed="false">Recall first</button>
+        </div>
+        <div class="legend"><span><span class="sw"></span>Has the label (6 cases)</span><span><span class="sw s2"></span>Does not have the label (14 examples)</span></div>
+        <div class="chart" id="rule-chart"></div>
+        <div class="tiles keep3">
+          <div class="tile"><span class="t-label"><span class="ic good">✓</span>Found</span><span class="t-val" id="r-found"></span></div>
+          <div class="tile"><span class="t-label"><span class="ic bad">✕</span>Missed</span><span class="t-val" id="r-missed"></span></div>
+          <div class="tile"><span class="t-label"><span class="ic warn">!</span>False alarms</span><span class="t-val" id="r-fa"></span></div>
+        </div>
+        <div class="tiles keep3">
+          <div class="tile"><span class="t-label">Recall</span><span class="t-val" id="r-rec"></span></div>
+          <div class="tile"><span class="t-label">Precision</span><span class="t-val" id="r-prec"></span></div>
+          <div class="tile"><span class="t-label">F1</span><span class="t-val" id="r-f1"></span></div>
+        </div>
+        <p class="sim-note" id="rule-note" aria-live="polite"></p>
+        <figcaption>Each dot is one example from the validation set. Its position shows the confidence of the model for the label. The model says “yes” to every dot on the right of the cutoff line. In this example, the bar for recall first is to find at least 5 of the 6 cases.</figcaption>
+      </figure>
+      <div class="rule">
+        <p class="rule-tag">Required steps</p>
+        <ul>
+          <li>Give the trainer the name of the headline score. If you do not, the trainer selects the best checkpoint by the loss on the validation set.</li>
+          <li>Measure the final model one time on the test set, at the cutoffs that you select. Report this score. The validation score is usually too high, because you used the validation set to select the best checkpoint and the cutoffs.</li>
+          <li>Report the recall and the precision of each label next to the headline score.</li>
+          <li>If you compare your model with a published result, also report the score that the published result uses.</li>
+        </ul>
+      </div>
+      <p class="bridge">Next, decide how the model learns. The first setting is the batch size, which sets how many examples go into each update.</p>
+    </section>
+
+
+    <section class="decision" id="d4" aria-labelledby="d4-t">
+      <div class="d-head"><span class="d-num">04</span></div>
+      <h2 id="d4-t">Batch size</h2>
+      <p class="oneline">The batch size is the number of examples that the model reads before it makes one update to its weights.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">How many examples go into each update?</p>
+        <p>You set two numbers, the batch per part and the parts per update. Together they give the effective batch. Aim for an effective batch of 16 to 32.</p>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">The training loop, step by step<span class="illus">Illustration</span></p>
+        <div class="sim-controls">
+          <div class="seg" role="group" aria-label="Batch size">
+            <button type="button" data-bs="4" aria-pressed="false">Batch of 4</button>
+            <button type="button" data-bs="8" aria-pressed="true">Batch of 8</button>
+            <button type="button" data-bs="12" aria-pressed="false">Batch of 12</button>
+          </div>
+          <button type="button" class="btn" id="loop-play">Play</button>
+        </div>
+        <div class="loop-data" id="loop-data" role="img" aria-label="24 squares, one for each training example. For each update, a batch of squares lights up. After the update, the squares become pale."></div>
+        <ol class="loop-steps" id="loop-steps">
+          <li data-step="read">Read a batch</li>
+          <li class="arr" aria-hidden="true">→</li>
+          <li data-step="mistakes">Measure the loss</li>
+          <li class="arr" aria-hidden="true">→</li>
+          <li data-step="update">Make one update</li>
+          <li class="arr" aria-hidden="true">↻ Do again</li>
+        </ol>
+        <div class="tiles">
+          <div class="tile"><span class="t-label">Epoch</span><span class="t-val" id="loop-epoch">1</span></div>
+          <div class="tile"><span class="t-label">Updates so far</span><span class="t-val" id="loop-updates">0</span></div>
+          <div class="tile"><span class="t-label">Updates per epoch</span><span class="t-val" id="loop-per">3</span></div>
+        </div>
+        <p class="sim-note" id="loop-note" aria-live="polite"></p>
+        <figcaption>This example has 24 training examples. Each update uses the average result of all the examples in the batch. After the model uses all the examples one time, one epoch is complete and the next epoch starts.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How the batch size changes training</h3>
+        <ul class="opts">
+          <li><b>Steady updates</b><span>A larger batch uses the average of more examples. Thus, one unusual example has less effect on the update. A small batch gives less steady updates.</span></li>
+          <li><b>Number of updates</b><span>With the same data, a larger batch gives fewer updates in each epoch. For example, 10,000 examples in batches of 8 give 1,250 updates. In batches of 32, they give approximately 310 updates.</span></li>
+          <li><b>Memory</b><span>The model processes all the examples in a batch at the same time. Thus, a larger batch or longer texts need more memory.</span></li>
+        </ul>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">How accumulation makes a large batch from small parts</p>
+        <div class="accum">
+          <div class="acc-row">
+            <b>One batch of 32</b>
+            <span class="acc-flow"><span class="cells" data-n="32"></span><span class="acc-op">→</span><span class="upd">1 update</span></span>
+            <span class="acc-meta">The model must hold 32 examples in memory at the same time.</span>
+          </div>
+          <div class="acc-row">
+            <b>4 parts of 8</b>
+            <span class="acc-flow"><span class="cells" data-n="8"></span><span class="cells" data-n="8"></span><span class="cells" data-n="8"></span><span class="cells" data-n="8"></span><span class="acc-op">add together →</span><span class="upd">1 update</span></span>
+            <span class="acc-meta">The model holds only 8 examples in memory at a time. This method takes more time.</span>
+          </div>
+        </div>
+        <figcaption>If the batch that you want does not fit in memory, the model can read it in parts. The model calculates the changes for each part and adds them together. Then it makes one update. The <b>effective batch</b> is the size of one part multiplied by the number of parts. In this example, 8 × 4 = 32.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>Batch per part <span class="default">DEFAULT: 8</span></b><span>This is the largest number of examples that fits in memory at your length limit. In Hugging Face, the setting is <code>per_device_train_batch_size</code>.</span></li>
+          <li><b>Parts per update <span class="default">DEFAULT: 1</span></b><span>This is the number of parts that the model adds together for one update. A value of 1 means that the model does not use accumulation. In Hugging Face, the setting is <code>gradient_accumulation_steps</code>.</span></li>
+        </ul>
+        <p class="after">As a general rule, use an effective batch of 16 or 32 to fine-tune a classifier. The defaults give an effective batch of only 8 (8 × 1), which is below this range. With a batch per part of 8, 2 or 4 parts per update give 16 or 32.</p>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span>What is the largest batch per part that fits in memory? Find this value with a timing run at your length limit.</span></li>
+          <li><span>Which effective batch do you want? If the batch per part is smaller, use more parts per update to get that effective batch.</span></li>
+          <li><span>How much training data do you have? If you have little data, use a smaller effective batch, so that each epoch has enough updates.</span></li>
+        </ol>
+      </div>
+      <p class="bridge">Next, decide how large each update is. This is the learning rate.</p>
+    </section>
+
+    <section class="decision" id="d5" aria-labelledby="d5-t">
+      <div class="d-head"><span class="d-num">05</span></div>
+      <h2 id="d5-t">Learning rate</h2>
+      <p class="oneline">The learning rate sets how large each update to the weights is.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">How large is each update?</p>
+        <p>You set the starting rate and how the rate changes during training. Start with 5e-5 for the whole model or the top layers, and between 1e-4 and 2e-4 for LoRA.</p>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">The effect of three learning rates<span class="illus">Illustration</span></p>
+        <div class="multiples">
+          <div class="mini"><b>Too low</b><div id="v-low"></div><span>After 8 updates, the weight is still far from the bottom. The model learns too slowly to get a good score.</span></div>
+          <div class="mini"><b>Correct</b><div id="v-right"></div><span>The weight gets to the bottom in a few updates.</span></div>
+          <div class="mini"><b>Too high</b><div id="v-high"></div><span>Each update jumps past the bottom and lands higher. The loss increases suddenly or shows <code>NaN</code> (not a number). The model can also lose what it learned in pretraining.</span></div>
+        </div>
+        <figcaption>The curve shows the loss for one weight, and a lower loss is better. Each dot is the weight after one update. A real model has millions of weights, but the idea is the same.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">Options (values to start with)</h3>
+        <ul class="opts">
+          <li><b>Whole model or top layers <span class="default">DEFAULT: 5e-5</span></b><span>The value 5e-5 means 0.00005.</span></li>
+          <li><b>LoRA</b><span>Start between 1e-4 and 2e-4, which is 0.0001 to 0.0002.</span></li>
+        </ul>
+        <p class="after">If you train fewer weights, you can use a higher rate. If the model is larger, use a lower rate.</p>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">How the learning rate changes during training</p>
+        <div class="legend"><span><span class="sw sq soft"></span>Warm-up, the first 10% of the updates</span><span><span class="sw"></span>Learning rate</span></div>
+        <div class="chart" id="sched-chart"></div>
+        <figcaption>The rate starts at zero and increases during the first 10% of the updates, because the first updates are the least reliable. Then the rate decreases steadily to zero.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <p class="prose">The <b>loss curve</b> is a plot of the loss during training. There are two curves. The <b>training loss</b> comes from the training data. The <b>validation loss</b> comes from the validation set.</p>
+        <p class="prose">Start with the value for your training scope. Change the rate only if the loss curve shows a problem, or when you tune. To tune means to try several values and keep the best one. If you try other values, make each value about 3 times larger or smaller than the last one.</p>
+        <div class="fig" style="padding:0">
+          <div class="tbl-wrap"><table class="signs">
+            <thead><tr><th scope="col">Loss curve</th><th scope="col">What you see</th><th scope="col">What to do</th></tr></thead>
+            <tbody>
+              <tr><td><span class="spark" data-pts="0.9,0.62,0.46,0.37,0.31,0.28,0.26,0.25,0.24"></span></td><td>The loss decreases and then becomes stable.</td><td>This is correct. Keep the rate.</td></tr>
+              <tr><td><span class="spark" data-pts="0.8,0.6,0.7,0.48,0.86,0.52,1,0.6,0.97"></span></td><td>The loss increases suddenly, or it shows <code>NaN</code>.</td><td>The rate is too high. Divide it by 3 or by 10.</td></tr>
+              <tr><td><span class="spark" data-pts="0.9,0.88,0.86,0.85,0.83,0.82,0.8,0.79,0.78"></span></td><td>The training loss and the validation loss both decrease slowly and stay high.</td><td>The rate is too low. Multiply it by 3.</td></tr>
+              <tr><td><span class="spark" data-pts="0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75"></span></td><td>The loss stays flat from the first update.</td><td>The cause is usually not the rate. If you froze weights yourself, make sure that the output layer is not frozen.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <p class="after">A larger batch usually needs a slightly higher rate. If you change the batch size a lot, examine the rate again.</p>
+      </div>
+      <div class="rule">
+        <p class="rule-tag">Required step</p>
+        <p>Set the warm-up yourself, because the library default has no warm-up. In transformers 5, write <code>warmup_steps=0.1</code>. The setting <code>warmup_ratio</code> does not exist any more.</p>
+      </div>
+      <p class="bridge">Next, decide how long the model trains. This is the number of epochs.</p>
+    </section>
+
+    <section class="decision" id="d6" aria-labelledby="d6-t">
+      <div class="d-head"><span class="d-num">06</span></div>
+      <h2 id="d6-t">Epochs</h2>
+      <p class="oneline">An epoch is one full pass through the training data. The number of epochs is the number of times that the model sees each example.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">How many passes through the training data?</p>
+        <p>You select a fixed number of epochs or early stopping. Start with the usual number for the size of your data, and always keep the best checkpoint.</p>
+      </div>
+      <div class="two">
+        <div><b>Too few epochs</b><span>The model stops before it learns enough. At the end of training, the score on the validation set still increases.</span></div>
+        <div><b>Too many epochs</b><span>The model starts to memorize the training examples instead of the general patterns. This is called overfitting. The training loss continues to decrease, but the validation score stops increasing and then decreases. Each extra epoch also takes the time of a full pass.</span></div>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">When should training stop?<span class="illus">Illustration</span></p>
+        <div class="sim-controls">
+          <div class="seg" role="group" aria-label="Maximum number of epochs">
+            <button type="button" data-max="2" aria-pressed="false">2 epochs</button>
+            <button type="button" data-max="5" aria-pressed="false">5 epochs</button>
+            <button type="button" data-max="10" aria-pressed="true">10 epochs</button>
+          </div>
+        </div>
+        <div class="toggles">
+          <label class="check"><input type="checkbox" id="ep-keep"> Keep the best checkpoint</label>
+          <label class="check"><input type="checkbox" id="ep-early"> Early stopping (patience of 2)</label>
+        </div>
+        <div class="chart" id="ep-chart"></div>
+        <div class="tiles" aria-live="polite">
+          <div class="tile"><span class="t-label">Epochs completed</span><span class="t-val" id="ep-ran"></span></div>
+          <div class="tile"><span class="t-label">Model that you keep</span><span class="t-val" id="ep-end"></span></div>
+          <div class="tile"><span class="t-label">Validation score</span><span class="t-val" id="ep-score"></span></div>
+        </div>
+        <p class="sim-note" id="ep-note" aria-live="polite"></p>
+        <figcaption>To make the picture simple, the model is evaluated once in each epoch here. A real run evaluates 10 to 20 times. If you keep the best checkpoint, extra epochs cost only time. They do not make the final model worse.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>A fixed number <span class="default">DEFAULT: 3</span></b><span>Train for exactly that number of epochs.</span></li>
+          <li><b>Early stopping</b><span>Set a maximum number of epochs. Training stops if the validation score does not improve for a set number of evaluations in a row. This number is the <i>patience</i>. If the patience is too small, one random decrease can stop training too early.</span></li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3 class="block-title">Typical numbers of epochs (general rules)</h3>
+        <div class="fig" style="padding:0">
+          <div class="tbl-wrap"><table>
+            <thead><tr><th scope="col">Training examples</th><th scope="col">Usual number of epochs</th></tr></thead>
+            <tbody>
+              <tr><td>Fewer than about 1,000</td><td>5 to 10</td></tr>
+              <tr><td>About 1,000 to 100,000</td><td>2 to 5</td></tr>
+              <tr><td>More than about 100,000</td><td>1 to 2</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <p class="after">The total number of updates is what matters. A large dataset gives many updates in each epoch, so it needs fewer epochs. The whole model memorizes the data fastest. LoRA and top layers usually need a few more epochs. The validation score after the first run gives the final answer.</p>
+      </div>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <ol class="qs">
+          <li><span>How many training examples do you have? Start from the usual range for that number.</span></li>
+          <li><span>How long does one epoch take? A timing run tells you. This time sets the maximum number of epochs that you have time for.</span></li>
+          <li><span>After the first run, did the validation score still increase at the end? If so, add epochs. Did the score reach its peak early? If so, use fewer epochs or early stopping.</span></li>
+        </ol>
+        <p class="after">Then set a maximum number of epochs. If each epoch is slow, add early stopping.</p>
+      </div>
+      <div class="rule">
+        <p class="rule-tag">Required steps</p>
+        <ul>
+          <li>Turn on “keep the best checkpoint”. It is off by default, so the trainer keeps the last checkpoint, which is not always the best.</li>
+          <li>Evaluate, save and log (record the scores) at the same interval, about 10 to 20 times in each run. The best checkpoint works only if the evaluations and the saves match. The interval is a number of updates. If you change the batch size, set the interval again.</li>
+          <li>Keep only the best checkpoint and the latest checkpoint (<code>save_total_limit=2</code>). By default, the library keeps all checkpoints. Each checkpoint holds the weights and the optimizer state (extra numbers that the trainer keeps for each weight), so it is large.</li>
+        </ul>
+      </div>
+      <p class="bridge">After the first run, examine the rare labels. The last decision is necessary only if they miss the bar.</p>
+    </section>
+
+
+    <section class="decision" id="d7" aria-labelledby="d7-t">
+      <div class="d-head"><span class="d-num">07</span></div>
+      <h2 id="d7-t">Loss</h2>
+      <p class="oneline">The loss shows how wrong the answers of the model are. By default, a mistake on a rare label costs the same as a mistake on a common label.</p>
+      <div class="decide">
+        <p class="decide-tag">The decision</p>
+        <p class="decide-q">Must mistakes on rare labels cost more?</p>
+        <p>Start with the standard loss. Change it only if the rare labels miss the bar after you select new cutoffs. In a multi-class task, there are no cutoffs, so check the bar directly after training. The options are weights for rare labels or a special loss.</p>
+      </div>
+      <p>Imbalance means that some labels have many more examples than others. The model then learns to prefer the common labels, and it gives low confidences to rare labels. A lower cutoff for a rare label can correct some of this, and it needs no new training. Thus, select the cutoffs before you change the loss.</p>
+      <div class="block">
+        <h3 class="block-title">Options</h3>
+        <ul class="opts">
+          <li><b>Standard loss <span class="default">DEFAULT</span></b><span>The library selects it from the task type. It is a form of cross-entropy.</span></li>
+          <li><b>Weights</b><span>A mistake on a rare label counts more. <i>Full</i> weights follow how rare the label is. <i>Gentle</i> weights are the square root of the full weights. <i>Capped</i> weights never go above a limit that you set.</span></li>
+          <li><b>Focal loss</b><span>It makes training focus on the difficult examples. It needs custom code and adds settings to tune.</span></li>
+          <li><b>Asymmetric loss (multi-label)</b><span>It makes the penalty smaller for the many easy “no” answers. It needs custom code and adds settings to tune.</span></li>
+        </ul>
+      </div>
+      <figure class="fig">
+        <p class="fig-title">How much weight does a rare label get?</p>
+        <div class="control">
+          <label for="w-n">Share of examples with the label</label>
+          <input type="range" id="w-n" min="0" max="8" step="1" value="5">
+          <output id="w-n-out" for="w-n">1 in 100</output>
+        </div>
+        <div class="wbars" aria-hidden="true">
+          <div class="wbar-row"><span>Full weight</span><span class="bar-track"><span class="bar-fill full" id="w-full-bar"></span></span><span class="bar-val" id="w-full"></span></div>
+          <div class="wbar-row"><span>Gentle weight</span><span class="bar-track"><span class="bar-fill" id="w-gentle-bar"></span></span><span class="bar-val" id="w-gentle"></span></div>
+          <div class="wscale"><span></span><span><span>1×</span><span>10×</span><span>100×</span><span>1,000×</span></span><span></span></div>
+        </div>
+        <p class="sim-note" id="w-note" aria-live="polite"></p>
+        <figcaption>The full weight is the number of examples without the label divided by the number of examples with the label. The gentle weight is the square root of the full weight. Each mark on the scale is 10 times the previous mark. With large imbalance, full weights cause too many false alarms on rare labels.</figcaption>
+      </figure>
+      <div class="block">
+        <h3 class="block-title">How to decide</h3>
+        <p class="prose">Each change means that you must train again. Thus, go up one step at a time, and only while the rare labels do not meet the bar:</p>
+        <ol class="steps"><li>Use gentle weights. Cap any label whose weight is much larger than the others.</li><li>Use full weights.</li><li>Use a special loss.</li></ol>
+      </div>
+      <div class="rule">
+        <p class="rule-tag">When to keep a change</p>
+        <p>Select new cutoffs after each change. Keep the change only if these two conditions are true:</p>
+        <ul>
+          <li>The recall of the rare labels increased on the validation set.</li>
+          <li>The precision did not decrease too much.</li>
+        </ul>
+        <p>Compare each label, and the macro-F1, with the run without weights. If no change meets the bar, keep the best run and record the gap.</p>
+      </div>
+    </section>
+
+    <section class="decision" id="other" aria-labelledby="other-t">
+      <div class="d-head"><span class="d-num">+</span><span class="d-group">Fixes</span></div>
+      <h2 id="other-t">If a run fails</h2>
+      <div class="block">
+        <h3 class="block-title">Try these fixes in order</h3>
+        <div class="ladders">
+          <div class="ladder"><b>If the run is out of memory</b>
+            <ol class="steps"><li>Use a smaller batch with accumulation.</li><li>Calculate some values again instead of keeping them (gradient checkpointing). It is not related to the checkpoints that the trainer saves. The run uses less memory but is about 20% slower.</li><li>Use a shorter length limit, or a smaller training scope.</li></ol>
+          </div>
+          <div class="ladder"><b>If the run is too slow</b>
+            <ol class="steps"><li>Use half-size numbers (bf16, or fp16 on older GPUs). These numbers use 16 bits instead of 32 bits, so they need less memory and calculate faster. Use them only if your GPU supports them directly. Some GPUs only imitate them, and then the run is not faster.</li><li>Group the texts by length, so that there is less padding (empty tokens that fill short texts).</li><li>Train fewer weights, or use a faster GPU.</li></ol>
+          </div>
+          <div class="ladder"><b>If the model overfits (memorizes the training data), even with the best checkpoint</b>
+            <ol class="steps"><li>Use fewer epochs, or early stopping.</li><li>Add weight decay, which pulls the weights toward zero. The library default is 0, and common values are 0.01 to 0.1.</li><li>Increase the dropout. This model setting turns off random parts of the model during training. Usually, you keep its default.</li></ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="decision" id="musts" aria-labelledby="musts-t">
+      <div class="d-head"><span class="d-num">✓</span><span class="d-group">Always</span></div>
+      <h2 id="musts-t">Required steps</h2>
+      <p>These steps need no decision. Each step is one line of code.</p>
+      <ul class="rules-list">
+        <li><span>Use a fixed version of the model, so that you can repeat the run. Models on Hugging Face can change, and each version has an ID.</span></li>
+        <li><span>When you load the model, give it the number of labels and the task type. Also give it the names of the labels in a fixed order. The position of each name sets the number of that label, so keep the same order in training and in use. If you do not give these settings, the model uses two labels with the names LABEL_0 and LABEL_1.</span></li>
+        <li><span>Short texts in a batch get extra tokens to fill the empty places. These are padding tokens. Copy the ID of the padding token into the model. If you do not, the model does not accept batches larger than 1.</span></li>
+        <li><span>The <b>seed</b> is a number that sets the random numbers of a run. Set it immediately before you load the model. Then the new output layer starts in the same way in every run.</span></li>
+        <li><span>Remove all extra columns, for example IDs and metadata, before you change the text into tokens. The trainer cannot use them, and they can stop the run.</span></li>
+      </ul>
+    </section>
+  </main>
+</div>
+</div>
+
+<div id="view-cheat" role="tabpanel" aria-labelledby="tab-cheat" hidden>
+  <div class="wrap cheat">
+    <h2>Cheat sheet</h2>
+    <p class="prose">This table has one row for each decision. <b style="color:var(--accent)">Red bold</b> text shows the default or the first choice. Use the table when you set up a new training run.</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead><tr><th scope="col">#</th><th scope="col">Decision</th><th scope="col">Question</th><th scope="col">Options</th><th scope="col">Decide by</th><th scope="col">Required step</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><th scope="row">Base model</th><td>Which pretrained model do you start from?</td><td>Size, <b class="def">base version</b>, general or domain</td><td>Check the length, language, library support, memory and licence. Take the <b class="def">smallest</b> model that passes.</td><td>Fix the model version.</td></tr>
+          <tr><td class="num">2</td><th scope="row">Training scope</th><td>Which weights can change?</td><td><b class="def">Whole model</b>, LoRA, top layers, or the output layer only</td><td>Find what stops you. If it is memory, use LoRA. If it is time, use top layers. If it is both, use top layers or a smaller model.</td><td>Unlock the output layer again. Print the share of weights that learn.</td></tr>
+          <tr><td class="num">3</td><th scope="row">Headline score</th><td>Which number judges the model?</td><td>The score (F1 on the positive label, micro-F1 or macro-F1), the bar for rare labels, and the cutoff rule (best F1 or recall first)</td><td>The task type, and whether every label must do well. Use recall first if a miss costs more than a false alarm.</td><td>Give the trainer the name of the score. Report the score on the test set, with the recall and the precision of each label.</td></tr>
+          <tr><td class="num">4</td><th scope="row">Batch size</th><td>How many examples go into each update?</td><td>Batch per part <b class="def">8</b> and parts per update <b class="def">1</b>. Aim for an effective batch of 16 to 32, because the defaults give only 8.</td><td>The memory (from the timing run), the effective batch that you want, and the data size</td><td>No required step.</td></tr>
+          <tr><td class="num">5</td><th scope="row">Learning rate</th><td>How large is each update?</td><td><b class="def">5e-5</b> for the whole model or top layers, and 1e-4 to 2e-4 for LoRA. Warm up over 10% of the updates, then decrease to zero.</td><td>Start with the value for your scope. Change it only for a curve problem. Multiply or divide it by about 3.</td><td>Set the warm-up yourself with <code>warmup_steps=0.1</code>.</td></tr>
+          <tr><td class="num">6</td><th scope="row">Epochs</th><td>How many passes through the training data?</td><td>A fixed number (<b class="def">3</b>), or early stopping</td><td>The data size, the time for each epoch, and the validation score after the first run</td><td>Keep the best checkpoint. Evaluate, save and log at one interval, and set it again if the batch size changes. Keep only the best and the latest checkpoints.</td></tr>
+          <tr><td class="num">7</td><th scope="row">Loss</th><td>Must mistakes on rare labels cost more?</td><td><b class="def">Standard loss</b>, gentle weights, full weights, capped weights, focal loss or asymmetric loss</td><td>Change it only while rare labels miss the bar after the cutoffs. Go up one step at a time.</td><td>Keep a change only if the rare-label recall increased and the precision stayed high enough.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="view-glossary" role="tabpanel" aria-labelledby="tab-glossary" hidden>
+  <div class="wrap cheat">
+    <h2>Glossary</h2>
+    <p class="prose">This list explains the technical words on this page.</p>
+    <dl class="gloss">
+      <div><dt>Example</dt><dd>One item in the data. It has a text and the correct label for that text.</dd></div>
+      <div><dt>Label</dt><dd>The answer that the model must give for a text, for example “billing”.</dd></div>
+      <div><dt>Case</dt><dd>An example that really has the label. Recall counts the cases that the model finds.</dd></div>
+      <div><dt>Task type</dt><dd>Binary (one of two labels), multi-class (exactly one label from three or more), or multi-label (any number of labels).</dd></div>
+      <div><dt>Training set</dt><dd>The examples that the model learns from.</dd></div>
+      <div><dt>Validation set</dt><dd>A set of examples that the model does not learn from. You use it to measure the model and to tune your choices.</dd></div>
+      <div><dt>Test set</dt><dd>Examples that you use one time, at the end, to measure the final model. This gives an honest final score.</dd></div>
+      <div><dt>Weight</dt><dd>One of the numbers inside the model. Training changes the weights. Another name for a weight is a parameter.</dd></div>
+      <div><dt>Layer</dt><dd>One stage of the model. A model is a stack of layers, and the text goes up through them.</dd></div>
+      <div><dt>Pretraining</dt><dd>The first training of the model. The model read a very large amount of text and learned to predict the next word.</dd></div>
+      <div><dt>Output layer</dt><dd>The top layer of the classifier. It gives a confidence for each label.</dd></div>
+      <div><dt>Confidence</dt><dd>A number from 0 to 1 that the model gives for each label.</dd></div>
+      <div><dt>Cutoff</dt><dd>The confidence above which a label counts as “yes”.</dd></div>
+      <div><dt>Bar</dt><dd>The lowest recall that you accept for each rare label. You set it before you see any results.</dd></div>
+      <div><dt>Batch</dt><dd>A small group of training examples. The model reads one batch before each update.</dd></div>
+      <div><dt>Loss</dt><dd>A number that shows how wrong the model is. Training changes the weights to make the loss smaller.</dd></div>
+      <div><dt>Update</dt><dd>One change to the weights. The model makes one update after each batch of examples.</dd></div>
+      <div><dt>Step</dt><dd>The Hugging Face name for one update. It is in setting names such as <code>warmup_steps</code>.</dd></div>
+      <div><dt>Epoch</dt><dd>One full pass through all the training data.</dd></div>
+      <div><dt>Evaluation</dt><dd>A measurement of the model on the validation set, at a fixed interval during training.</dd></div>
+      <div><dt>Loss curve</dt><dd>A plot of the loss over time. The training loss comes from the training data, and the validation loss from the validation set.</dd></div>
+      <div><dt>Checkpoint</dt><dd>A copy of the model that is saved during training.</dd></div>
+      <div><dt>GPU</dt><dd>A chip that does many calculations at the same time. Training runs on it, and its memory limits the size of the model and of the batch.</dd></div>
+      <div><dt>Timing run</dt><dd>A training run of a few minutes with the settings that you plan to use. It shows how long training takes and how much memory it needs.</dd></div>
+      <div><dt>Trainer</dt><dd>The part of Hugging Face transformers, a free code library, that runs the training loop.</dd></div>
+    </dl>
+  </div>
+</div>
+
+<footer class="wrap">
+  <p>Parts marked “Illustration” use made-up numbers. Setting names in code font come from Hugging Face transformers 5.</p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NS = "http://www.w3.org/2000/svg";
+  function svg(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(tag, attrs, text, parent) { var e = svg(tag, attrs, parent); e.textContent = text; return e; }
+  function f2(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+  function pct(v, d) { return (v * 100).toFixed(d || 0) + "%"; }
+  function num(n) { return Number(n).toLocaleString("en-US"); }
+  function say(el, kind, text) {
+    el.textContent = "";
+    var ic = document.createElement("span");
+    ic.className = "ic " + kind;
+    ic.textContent = kind === "good" ? "✓" : kind === "bad" ? "✕" : "!";
+    var b = document.createElement("span");
+    b.textContent = text;
+    el.appendChild(ic); el.appendChild(b);
+  }
+  function press(list, el) { list.forEach(function (o) { o.setAttribute("aria-pressed", String(o === el)); }); }
+
+  /* ---------- Views and navigation ---------- */
+  var tabs = $$("[data-view]");
+  var HASH = { learn: "#learn", cheat: "#cheatsheet", glossary: "#glossary" };
+  function showView(v) {
+    $("#view-learn").hidden = v !== "learn";
+    $("#view-cheat").hidden = v !== "cheat";
+    $("#view-glossary").hidden = v !== "glossary";
+    $("#jump").hidden = v !== "learn";
+    tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t.getAttribute("data-view") === v)); });
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () {
+      var v = t.getAttribute("data-view");
+      showView(v);
+      try { history.replaceState(null, "", HASH[v]); } catch (e) {}
+      $("#views").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    });
+  });
+  showView(location.hash === "#cheatsheet" ? "cheat" : location.hash === "#glossary" ? "glossary" : "learn");
+
+  function goTo(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    showView("learn");
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }
+  $$("a[data-nav]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      goTo(a.getAttribute("href").slice(1));
+    });
+  });
+  var jump = $("#jump");
+  jump.addEventListener("change", function () { goTo(jump.value); });
+
+  var railLinks = {};
+  $$(".rail a").forEach(function (a) { railLinks[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        Object.keys(railLinks).forEach(function (k) { railLinks[k].classList.remove("active"); });
+        var a = railLinks[en.target.id];
+        if (a) a.classList.add("active");
+        if (jump.querySelector('option[value="' + en.target.id + '"]')) jump.value = en.target.id;
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    $$("section.decision").forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---------- 1. Memory check ---------- */
+  (function () {
+    var SIZES = [0.1, 0.3, 0.5, 1, 1.5, 3, 7, 13];
+    var size = $("#mem-size"), out = $("#mem-size-out"), gb = $("#mem-gb");
+    function gbText(v) { return (v < 10 ? String(Math.round(v * 10) / 10) : String(Math.round(v))) + " GB"; }
+    function update() {
+      var s = SIZES[+size.value], have = +gb.value, need = s * 16, top = Math.max(need, have);
+      out.textContent = s + "B";
+      $("#mem-big").textContent = gbText(need);
+      $("#mem-need").style.width = (need / top * 100) + "%";
+      $("#mem-have").style.width = (have / top * 100) + "%";
+      $("#mem-need").classList.toggle("over", need > have);
+      $("#mem-need-v").textContent = gbText(need);
+      $("#mem-have-v").textContent = have + " GB";
+      $("#mem-calc").textContent = "For this model, " + s + "B weights × 16 bytes ≈ " + gbText(need) + ".";
+      if (need <= have) say($("#mem-note"), "good", "The model fits. Each batch of examples also needs memory, so the real need is higher than this.");
+      else say($("#mem-note"), "bad", "The model does not fit. Select a smaller model, or train only part of the model.");
+    }
+    size.addEventListener("input", update);
+    gb.addEventListener("change", update);
+    update();
+  })();
+
+  /* ---------- 2. Training scope ---------- */
+  (function () {
+    var D = {
+      whole: { what: "With the whole model, all the weights learn.", share: "All of them", m: [4, "Highest, approximately 16 bytes for each weight"], s: [1, "Slowest"], q: [4, "Best, if you have enough data"] },
+      lora: { what: "With LoRA (Low-Rank Adaptation), small new blocks of weights are added next to each layer. Only these blocks and the output layer learn. The original weights stay frozen.", share: "A small share", m: [3, "Low"], s: [2, "A little faster than the whole model"], q: [3, "Close to the whole model"] },
+      top: { what: "With top layers, the output layer and the one or two layers below it learn.", share: "A few percent", m: [2, "Very low"], s: [3, "Fast"], q: [2, "Lower than the whole model"] },
+      head: { what: "With the output layer only, only the new output layer learns.", share: "A very small share", m: [1, "Lowest"], s: [4, "Fastest"], q: [1, "Lowest"] }
+    };
+    var btns = $$("[data-scope]"), wrap = $("#layers"), layers = $$("#layers .layer");
+    function meter(id, v) {
+      $$("#" + id + " .pip").forEach(function (p, i) { p.classList.toggle("on", i < v[0]); });
+      $("#" + id + " .m-word").textContent = v[1];
+    }
+    function render(k) {
+      var d = D[k];
+      press(btns, btns.filter(function (b) { return b.getAttribute("data-scope") === k; })[0]);
+      wrap.classList.toggle("lora", k === "lora");
+      layers.forEach(function (el) {
+        var key = el.getAttribute("data-k");
+        var learns = k === "whole" || key === "out" || (k === "top" && (key === "6" || key === "5"));
+        el.classList.toggle("learn", learns);
+        el.classList.toggle("frozen", !learns);
+        $(".state", el).textContent = learns ? "learns" : "frozen";
+      });
+      $("#sc-what").textContent = d.what;
+      $("#sc-share").textContent = d.share;
+      meter("m-mem", d.m); meter("m-speed", d.s); meter("m-score", d.q);
+    }
+    btns.forEach(function (b) { b.addEventListener("click", function () { render(b.getAttribute("data-scope")); }); });
+    render("whole");
+  })();
+
+  /* ---------- 3. Micro vs macro ---------- */
+  (function () {
+    var k = $("#mm-k"), out = $("#mm-k-out");
+    function update() {
+      var n = +k.value, f = n / 10;
+      out.textContent = n + " of 10";
+      $("#mm-rare-found").textContent = String(n);
+      $("#mm-rare-bar").style.width = (f * 100) + "%";
+      $("#mm-rare-val").textContent = pct(f);
+      $("#mm-micro").textContent = pct((810 + 72 + n) / 1000, 1);
+      $("#mm-macro").textContent = pct((0.9 + 0.8 + f) / 3, 1);
+    }
+    k.addEventListener("input", update);
+    update();
+  })();
+
+  /* ---------- 3. Cutoff rules ---------- */
+  var rules = (function () {
+    var POS = [0.91, 0.78, 0.62, 0.48, 0.27, 0.12];
+    var NEG = [0.02, 0.04, 0.07, 0.09, 0.11, 0.14, 0.17, 0.20, 0.23, 0.26, 0.31, 0.36, 0.41, 0.55];
+    function tp(c) { return POS.filter(function (v) { return v >= c; }).length; }
+    function fp(c) { return NEG.filter(function (v) { return v >= c; }).length; }
+    function f1(c) { var t = tp(c); return t === 0 ? 0 : 2 * t / (2 * t + fp(c) + (POS.length - t)); }
+    var bestC = 0.5, bestF = -1, recC = 0.05, i;
+    for (i = 5; i <= 95; i++) { var f = f1(i / 100); if (f > bestF + 1e-9) { bestF = f; bestC = i / 100; } }
+    for (i = 95; i >= 5; i--) { if (tp(i / 100) >= 5) { recC = i / 100; break; } }
+    var CUT = { def: 0.5, f1: bestC, recall: recC };
+    var box = $("#rule-chart"), noteEl = $("#rule-note"), btns = $$("[data-rule]"), slider = $("#rule-n"), out = $("#rule-n-out");
+    slider.value = String(CUT.f1);
+    var W = 0, H = 190, m = { l: 18, r: 18, t: 30, b: 34 }, yPos = 72, yNeg = 128, R = 5, refs = null;
+    function x(c) { return m.l + c * (W - m.l - m.r); }
+    function place(list, y0) {
+      var placed = [], step = 2 * R + 3, tries = [0, -step, step, -2 * step, 2 * step];
+      return list.slice().sort(function (a, b) { return a.c - b.c; }).map(function (g) {
+        var px = x(g.c), py = y0;
+        for (var t = 0; t < tries.length; t++) {
+          var cand = y0 + tries[t];
+          var free = placed.every(function (p) { return Math.hypot(p.x - px, p.y - cand) >= 2 * R + 2; });
+          if (free) { py = cand; break; }
+        }
+        var pt = { x: px, y: py, g: g }; placed.push(pt); return pt;
+      });
+    }
+    function build() {
+      W = Math.max(280, Math.round(box.clientWidth));
+      box.textContent = "";
+      var s = svg("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
+        "aria-label": "Dot chart of 20 examples by the confidence of the model for one rare label. Six examples have the label and fourteen examples do not. A vertical line shows the cutoff." }, box);
+      var zone = svg("rect", { y: m.t, height: H - m.t - m.b, "class": "yes-zone" }, s);
+      svg("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, "class": "axis" }, s);
+      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { txt("text", { x: x(v), y: H - m.b + 17, "text-anchor": "middle", "class": "tick" }, String(v), s); });
+      txt("text", { x: W - m.r, y: H - 2, "text-anchor": "end", "class": "axis-title" }, "Confidence for the label", s);
+      svg("line", { x1: x(0.5), x2: x(0.5), y1: m.t, y2: H - m.b, "class": "def-line" }, s);
+      var line = svg("line", { y1: m.t - 6, y2: H - m.b, "class": "cut-line" }, s);
+      var lab = txt("text", { y: m.t - 12, "text-anchor": "middle", "class": "cut-label" }, "", s);
+      var pts = place(POS.map(function (c) { return { c: c, pos: true }; }), yPos)
+        .concat(place(NEG.map(function (c) { return { c: c, pos: false }; }), yNeg));
+      var dots = pts.map(function (p) { return { el: svg("circle", { cx: p.x, cy: p.y, r: R, "class": p.g.pos ? "dot-s1" : "dot-s2" }, s), g: p.g }; });
+      refs = { zone: zone, line: line, lab: lab, dots: dots };
+      update();
+    }
+    function same(a, b) { return Math.abs(a - b) < 0.001; }
+    function update() {
+      var c = Math.round(+slider.value * 100) / 100, t = tp(c), f = fp(c);
+      out.textContent = f2(c);
+      $("#r-found").textContent = t + " of 6";
+      $("#r-missed").textContent = String(6 - t);
+      $("#r-fa").textContent = String(f);
+      $("#r-rec").textContent = pct(t / 6);
+      $("#r-prec").textContent = t + f === 0 ? "–" : pct(t / (t + f));
+      $("#r-f1").textContent = pct(f1(c));
+      btns.forEach(function (b) { b.setAttribute("aria-pressed", String(same(c, CUT[b.getAttribute("data-rule")]))); });
+      var text = "At a cutoff of " + f2(c) + ", the model finds " + t + " of the 6 cases and gives " + f + " false alarm" + (f === 1 ? "" : "s") + ".";
+      if (same(c, CUT.f1)) text += " This is the best-F1 cutoff.";
+      else if (same(c, CUT.recall)) text += " This is the recall-first cutoff. It is the highest cutoff that still finds at least 5 of the 6 cases.";
+      else if (same(c, CUT.def)) text += " This is the default cutoff.";
+      noteEl.textContent = text;
+      if (!refs) return;
+      var cx = x(c);
+      refs.zone.setAttribute("x", cx); refs.zone.setAttribute("width", Math.max(0, W - m.r - cx));
+      refs.line.setAttribute("x1", cx); refs.line.setAttribute("x2", cx);
+      refs.lab.setAttribute("x", Math.min(Math.max(cx, m.l + 40), W - m.r - 40));
+      refs.lab.textContent = "cutoff " + f2(c);
+      refs.dots.forEach(function (d) { d.el.classList.toggle("dimmed", d.g.c < c); });
+    }
+    btns.forEach(function (b) {
+      b.addEventListener("click", function () { slider.value = String(CUT[b.getAttribute("data-rule")]); update(); });
+    });
+    slider.addEventListener("input", update);
+    return { build: build, box: box };
+  })();
+
+  /* ---------- 4. Training loop ---------- */
+  (function () {
+    var N = 24, EPOCHS = 2, DELAY = 650;
+    var box = $("#loop-data"), steps = $$("#loop-steps [data-step]"), btn = $("#loop-play"), bsBtns = $$("[data-bs]"), noteEl = $("#loop-note");
+    var cells = [];
+    for (var i = 0; i < N; i++) { var c = document.createElement("span"); c.className = "ex"; box.appendChild(c); cells.push(c); }
+    var bs = 8, pos = 0, epoch = 1, updates = 0, phase = 0, timer = null, done = false;
+    var NOTES = {
+      4: "With a batch of 4, the model makes 6 updates in each epoch. Each update uses only 4 examples, so the updates are less steady.",
+      8: "With a batch of 8, the model makes 3 updates in each epoch.",
+      12: "With a batch of 12, the model makes 2 updates in each epoch. Each update uses the average of 12 examples, so it is more steady. But the model makes fewer updates, and the batch needs more memory."
+    };
+    function show() {
+      $("#loop-epoch").textContent = String(epoch);
+      $("#loop-updates").textContent = String(updates);
+      $("#loop-per").textContent = String(Math.ceil(N / bs));
+    }
+    function lit(name) { steps.forEach(function (s) { s.classList.toggle("on", s.getAttribute("data-step") === name); }); }
+    function clearCells() { cells.forEach(function (c) { c.className = "ex"; }); }
+    function halt() { if (timer) clearTimeout(timer); timer = null; }
+    function reset() { halt(); pos = 0; epoch = 1; updates = 0; phase = 0; done = false; clearCells(); lit(null); show(); btn.textContent = "Play"; }
+    function tick() {
+      timer = null;
+      if (pos >= N) { epoch++; pos = 0; clearCells(); lit(null); show(); timer = setTimeout(tick, DELAY); return; }
+      var end = Math.min(pos + bs, N), j;
+      if (phase === 0) {
+        for (j = pos; j < end; j++) cells[j].classList.add("in-batch");
+        lit("read"); phase = 1;
+      } else if (phase === 1) {
+        lit("mistakes"); phase = 2;
+      } else {
+        for (j = pos; j < end; j++) { cells[j].classList.remove("in-batch"); cells[j].classList.add("used"); }
+        updates++; pos = end; lit("update"); phase = 0;
+        if (pos >= N && epoch >= EPOCHS) { show(); done = true; btn.textContent = "Play again"; return; }
+      }
+      show();
+      timer = setTimeout(tick, DELAY);
+    }
+    btn.addEventListener("click", function () {
+      if (timer) { halt(); btn.textContent = "Resume"; return; }
+      if (done) reset();
+      btn.textContent = "Pause";
+      tick();
+    });
+    bsBtns.forEach(function (b) {
+      b.addEventListener("click", function () {
+        bs = +b.getAttribute("data-bs");
+        press(bsBtns, b);
+        reset();
+        noteEl.textContent = NOTES[bs];
+      });
+    });
+    reset();
+    noteEl.textContent = NOTES[bs];
+  })();
+
+  /* ---------- 4. Accumulation cells ---------- */
+  $$(".cells[data-n]").forEach(function (g) {
+    for (var i = 0, n = +g.getAttribute("data-n"); i < n; i++) g.appendChild(document.createElement("i"));
+  });
+
+  /* ---------- 5. Valley small multiples ---------- */
+  (function () {
+    var W = 240, H = 150, m = { l: 12, r: 12, t: 16, b: 18 };
+    function x(w) { return m.l + (w + 3.6) / 7.2 * (W - m.l - m.r); }
+    function y(L) { return m.t + (1 - L / 13) * (H - m.t - m.b); }
+    function draw(id, factor, n, bad, label) {
+      var box = $(id);
+      var s = svg("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": label }, box);
+      var d = "";
+      for (var k = 0; k <= 72; k++) { var w = -3.6 + k * 0.1; d += (k ? "L" : "M") + x(w).toFixed(1) + "," + y(w * w).toFixed(1); }
+      svg("path", { d: d, "class": "valley" }, s);
+      txt("text", { x: x(0), y: H - 4, "text-anchor": "middle", "class": "mini-label" }, "lowest loss", s);
+      var pts = [], cur = -2.2;
+      for (var i = 0; i <= n; i++) { pts.push(cur); cur = cur * factor; }
+      for (i = 1; i < pts.length; i++) {
+        svg("line", { x1: x(pts[i - 1]), y1: y(pts[i - 1] * pts[i - 1]), x2: x(pts[i]), y2: y(pts[i] * pts[i]), "class": "step-line" + (bad ? " bad" : "") }, s);
+      }
+      pts.forEach(function (w, i) {
+        var cls = i === 0 ? "dot-start" : (bad && i === pts.length - 1 ? "dot-bad" : "dot-step");
+        svg("circle", { cx: x(w), cy: y(w * w), r: i === 0 ? 4.5 : 3.5, "class": cls }, s);
+      });
+      txt("text", { x: x(-2.2) - 4, y: y(4.84) - 9, "text-anchor": "middle", "class": "mini-label" }, "start", s);
+    }
+    draw("#v-low", 0.92, 8, false, "The rate is too low. After eight small updates, the weight is still high on the left side of the curve.");
+    draw("#v-right", 0.4, 4, false, "The rate is correct. Four updates get the weight to the bottom of the curve.");
+    draw("#v-high", -1.16, 3, true, "The rate is too high. Three updates jump from side to side and go higher each time.");
+  })();
+
+  /* ---------- 5. Schedule chart ---------- */
+  var sched = (function () {
+    var box = $("#sched-chart"), W = 0, H = 190, m = { l: 18, r: 18, t: 30, b: 36 };
+    function build() {
+      W = Math.max(280, Math.round(box.clientWidth));
+      box.textContent = "";
+      function x(p) { return m.l + p * (W - m.l - m.r); }
+      function y(v) { return H - m.b - v * (H - m.t - m.b); }
+      var s = svg("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
+        "aria-label": "Line chart of the learning rate during training. It increases from zero to the starting rate during the first 10% of the updates. Then it decreases in a straight line to zero at the end." }, box);
+      svg("rect", { x: x(0), y: m.t, width: x(0.1) - x(0), height: H - m.t - m.b, "class": "yes-zone" }, s);
+      svg("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, "class": "axis" }, s);
+      [[0, "0%"], [0.1, "10%"], [0.5, "50%"], [1, "100%"]].forEach(function (t) {
+        txt("text", { x: x(t[0]), y: H - m.b + 17, "text-anchor": t[0] === 1 ? "end" : t[0] === 0 ? "start" : "middle", "class": "tick" }, t[1], s);
+      });
+      txt("text", { x: W - m.r, y: H - 2, "text-anchor": "end", "class": "axis-title" }, "Share of the updates", s);
+      svg("path", { d: "M" + x(0) + "," + y(0) + "L" + x(0.1) + "," + y(1) + "L" + x(1) + "," + y(0), "class": "line-s1" }, s);
+      svg("circle", { cx: x(0.1), cy: y(1), r: 4.5, "class": "dot-s1" }, s);
+      txt("text", { x: x(0.1) + 10, y: y(1) - 8, "class": "ref-label" }, "your starting rate, for example 5e-5", s);
+    }
+    return { build: build, box: box };
+  })();
+
+  /* ---------- 5. Sparklines ---------- */
+  $$(".spark").forEach(function (el) {
+    var v = el.getAttribute("data-pts").split(",").map(Number), n = v.length;
+    var s = svg("svg", { viewBox: "0 0 100 30", width: 100, height: 30, "aria-hidden": "true" }, el);
+    var pts = v.map(function (val, i) { return (2 + i / (n - 1) * 96).toFixed(1) + "," + (28 - val * 26).toFixed(1); }).join(" ");
+    svg("polyline", { points: pts, "class": "spark-line" }, s);
+  });
+
+  /* ---------- 6. Epochs ---------- */
+  var epochs = (function () {
+    var VAL = [0.52, 0.66, 0.73, 0.76, 0.75, 0.73, 0.71, 0.69, 0.67, 0.65];
+    var LOSS = [0.62, 0.41, 0.29, 0.21, 0.15, 0.11, 0.08, 0.06, 0.045, 0.035];
+    var PAT = 2, maxE = 10;
+    var box = $("#ep-chart"), keepEl = $("#ep-keep"), earlyEl = $("#ep-early"), maxBtns = $$("[data-max]"), noteEl = $("#ep-note");
+    var W = 0, H = 304, m = { l: 18, r: 22 }, P1 = { t: 34, h: 70 }, P2 = { t: 165, h: 100 }, AX = 265;
+    function run() {
+      var ran = maxE, best = -1, bestE = 1, wait = 0;
+      for (var e = 1; e <= maxE; e++) {
+        var v = VAL[e - 1];
+        if (v > best) { best = v; bestE = e; wait = 0; }
+        else { wait++; if (earlyEl.checked && wait >= PAT) { ran = e; break; } }
+      }
+      return { ran: ran, bestE: bestE, end: keepEl.checked ? bestE : ran };
+    }
+    function x(e) { return m.l + 10 + (e - 1) / 9 * (W - m.l - m.r - 20); }
+    function yL(v) { return P1.t + (1 - v / 0.7) * P1.h; }
+    function yV(v) { return P2.t + (1 - (v - 0.45) / 0.35) * P2.h; }
+    function path(arr, fy, from, to) {
+      var d = "";
+      for (var e = from; e <= to; e++) d += (e === from ? "M" : "L") + x(e).toFixed(1) + "," + fy(arr[e - 1]).toFixed(1);
+      return d;
+    }
+    function clampX(v) { return Math.min(Math.max(v, m.l + 90), W - m.r - 90); }
+    function build() {
+      W = Math.max(280, Math.round(box.clientWidth));
+      box.textContent = "";
+      var r = run(), e;
+      var s = svg("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img",
+        "aria-label": "Two line charts for epochs 1 to 10. The training loss decreases all the time. The validation score increases to a peak at epoch 4 and then decreases." }, box);
+      if (r.ran < 10) {
+        var zx = (x(r.ran) + x(r.ran + 1)) / 2;
+        svg("rect", { x: zx, y: P1.t - 10, width: W - m.r - zx, height: AX - P1.t + 10, "class": "unrun" }, s);
+        txt("text", { x: (zx + W - m.r) / 2, y: P1.t + 12, "text-anchor": "middle", "class": "zone-label" }, "not trained", s);
+      }
+      txt("text", { x: m.l, y: P1.t - 14, "class": "axis-title" }, "Training loss", s);
+      txt("text", { x: m.l, y: P2.t - 26, "class": "axis-title" }, "Validation score", s);
+      svg("line", { x1: m.l, x2: W - m.r, y1: P1.t + P1.h, y2: P1.t + P1.h, "class": "grid" }, s);
+      svg("line", { x1: m.l, x2: W - m.r, y1: AX, y2: AX, "class": "axis" }, s);
+      for (e = 1; e <= 10; e++) txt("text", { x: x(e), y: AX + 16, "text-anchor": "middle", "class": "tick" }, String(e), s);
+      txt("text", { x: W - m.r, y: H - 2, "text-anchor": "end", "class": "axis-title" }, "Epoch", s);
+      svg("path", { d: path(LOSS, yL, 1, r.ran), "class": "line-s1" }, s);
+      svg("path", { d: path(VAL, yV, 1, r.ran), "class": "line-s1" }, s);
+      if (r.ran < 10) {
+        svg("path", { d: path(LOSS, yL, r.ran, 10), "class": "line-s1 line-dim" }, s);
+        svg("path", { d: path(VAL, yV, r.ran, 10), "class": "line-s1 line-dim" }, s);
+      }
+      for (e = 1; e <= r.ran; e++) svg("circle", { cx: x(e), cy: yV(VAL[e - 1]), r: 3, "class": "dot-small" }, s);
+      var bx = x(r.bestE), by = yV(VAL[r.bestE - 1]), ex = x(r.end), ey = yV(VAL[r.end - 1]);
+      svg("circle", { cx: bx, cy: by, r: 9, "class": "best-ring" }, s);
+      svg("circle", { cx: ex, cy: ey, r: 6, "class": "dot-end" }, s);
+      if (r.end === r.bestE) {
+        txt("text", { x: clampX(bx), y: by - 15, "text-anchor": "middle", "class": "ref-label" }, "best, and the model you keep", s);
+      } else {
+        txt("text", { x: bx, y: by - 15, "text-anchor": "middle", "class": "ref-label" }, "best", s);
+        txt("text", { x: clampX(ex), y: ey + 24, "text-anchor": "middle", "class": "ref-label" }, "the model you keep", s);
+      }
+      $("#ep-ran").textContent = String(r.ran);
+      $("#ep-end").textContent = "Epoch " + r.end;
+      $("#ep-score").textContent = pct(VAL[r.end - 1]);
+      var bestV = pct(VAL[r.bestE - 1]), endV = pct(VAL[r.end - 1]);
+      if (maxE === 2) {
+        say(noteEl, "warn", "There are too few epochs. The validation score still increases at the end, so add epochs.");
+      } else if (!keepEl.checked) {
+        say(noteEl, "bad", "You keep epoch " + r.ran + ", which is the last epoch, with a score of " + endV + ". The best epoch was epoch " + r.bestE + ", with " + bestV + ". Turn on “Keep the best checkpoint”, because it is off by default." +
+          (earlyEl.checked ? " Early stopping saves time. But without the best checkpoint, you still keep the last epoch." : ""));
+      } else if (!earlyEl.checked && r.ran - r.bestE >= 2) {
+        say(noteEl, "warn", "You keep epoch " + r.bestE + ", which is the best epoch. But epochs " + (r.bestE + 1) + " to " + r.ran + " took time and did not improve the model. Early stopping can save that time.");
+      } else if (earlyEl.checked && r.ran < maxE) {
+        say(noteEl, "good", "Training stops after epoch " + r.ran + ", because the score did not improve for " + PAT + " evaluations. You keep epoch " + r.bestE + ", which is the best epoch, and you save the time of " + (maxE - r.ran) + " epochs.");
+      } else {
+        say(noteEl, "good", "You keep epoch " + r.bestE + ", which is the best epoch.");
+      }
+    }
+    maxBtns.forEach(function (b) {
+      b.addEventListener("click", function () { maxE = +b.getAttribute("data-max"); press(maxBtns, b); build(); });
+    });
+    keepEl.addEventListener("change", build);
+    earlyEl.addEventListener("change", build);
+    return { build: build, box: box };
+  })();
+
+  /* ---------- 7. Weights ---------- */
+  (function () {
+    var NS_ = [2, 5, 10, 20, 50, 100, 200, 500, 1000];
+    var sl = $("#w-n"), out = $("#w-n-out"), noteEl = $("#w-note");
+    function fmt(v) { return v < 10 ? String(Math.round(v * 10) / 10) : num(Math.round(v)); }
+    function width(w) { return Math.max(1.5, Math.log(Math.max(1, w)) / Math.LN10 / 3 * 100) + "%"; }
+    function update() {
+      var n = NS_[+sl.value], full = n - 1, gentle = Math.sqrt(full);
+      out.textContent = "1 in " + num(n);
+      $("#w-full").textContent = fmt(full) + "×";
+      $("#w-gentle").textContent = fmt(gentle) + "×";
+      $("#w-full-bar").style.width = width(full);
+      $("#w-gentle-bar").style.width = width(gentle);
+      if (n === 2) { noteEl.textContent = "If the label is in 1 of 2 examples, it is not rare. Both weights are 1×."; return; }
+      noteEl.textContent = "A mistake on this label counts approximately " + fmt(full) + " times as much with full weights, or " + fmt(gentle) + " times as much with gentle weights." +
+        (n >= 100 ? " With imbalance this large, full weights can cause too many false alarms for this label." : "");
+    }
+    sl.addEventListener("input", update);
+    update();
+  })();
+
+  /* ---------- Responsive charts ---------- */
+  [rules, sched, epochs].forEach(function (chart) {
+    var last = -1;
+    function maybe() { var w = Math.round(chart.box.clientWidth); if (w > 0 && w !== last) { last = w; chart.build(); } }
+    if ("ResizeObserver" in window) new ResizeObserver(function () { requestAnimationFrame(maybe); }).observe(chart.box);
+    else window.addEventListener("resize", maybe);
+    chart.build();
+  });
+})();
+</script>
